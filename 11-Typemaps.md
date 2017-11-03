@@ -88,4 +88,188 @@ Tcl_Obj *Tcl_NewIntObj(long value);
 }
 ```
 
-第一次看到这样的代码，你肯定会迷迷糊糊地。但这真的是没什么大不了的。
+第一次看到这样的代码，你肯定会迷迷糊糊地。但这真的是没什么大不了的。第一个typemap("in" typemap)用来从目标语言转换数值(value)到C语言。第二个typemap("out" typemap)用于从C语言转换数据到目标语言。每个typemap的内容都是一小段代码片段，直接插入SWIG生成的包装函数代码中。这些代码一般是C或C++代码，通过包装代码生成器处理后插入包装函数中。需要注意的是，某些目标语言的typemap也允许目标语言代码的插入。在这些代码中，带$前缀的特殊变量会自动展开。这些变量只是C/C++语言变量的占位符号，经处理后会插入最终的包装代码中。$input表示需要转换到C/C++的输入对象，$result表示包装函数要返回的对象。$1表示C/C++变量，它的类型就是typemap申明中(这个例子中的`int`)指定的。
+
+
+
+给一个简单的例子更好理解。如果你想包装如下的函数：
+
+```{c}
+int gcd(int x, int y);	
+```
+
+包装函数可能如下：
+
+```{c}
+PyObject *wrap_gcd(PyObject *self, PyObject *args) {
+  int arg1;
+  int arg2;
+  int result;
+  PyObject *obj1;
+  PyObject *obj2;
+  PyObject *resultobj;
+  if (!PyArg_ParseTuple("OO:gcd", &obj1, &obj2)) return NULL;
+  /* "in" typemap, argument 1 */
+  {
+  	arg1 = PyInt_AsLong(obj1);
+  }
+  /* "in" typemap, argument 2 */
+  {
+    arg2 = PyInt_AsLong(obj2);
+  }
+  result = gcd(arg1, arg2);
+  /* "out" typemap, return value */
+  {
+    resultobj = PyInt_FromLong(result);
+  }
+  return resultobj;
+}
+```
+
+在这段代码中，你能看到typemap是如何插入到生成的函数中的。你也可以看到特殊变量$是如何匹配特定变量名，并在包装函数中展开的。这就是typemap的全部思想，它们可以让你插入任意代码到生成的包装函数的不同地方。因为人意代码都可以插入，它可能完全改变值被改变的方式。
+
+
+
+### 11.1.3 模式匹配(Pattern Matching)
+
+正如名字所暗含的意思，typemap的目的就是在目标语言中映射("**map**")C语言数据类型。一旦某个C语言数据类型的typemap被定义，输入文件中所有出现的该类型都会应用其特征。例如：
+
+```{c}
+/* Convert from Perl --> C */
+%typemap(in) int {
+	$1 = SvIV($input);
+}
+...
+int factorial(int n);
+int gcd(int x, int y);
+int count(char *s, char *t, int max);
+```
+
+匹配typemap到其相应的C语言数据类型不是简单的文本匹配。事实上，typemap全面内置(builtin)于底层的类型系统中。因此，typemap并不受typedef、namespace或其他可能会隐藏底层类型的声明的影响。例如，可能你有如下代码：
+
+```{C}
+/* Convert from Ruby--> C */
+%typemap(in) int {
+	$1 = NUM2INT($input);
+}.
+..
+typedef int Integer;
+namespace foo {
+	typedef Integer Number;
+};
+int foo(int x);
+int bar(Integer y);
+int spam(foo::Number a, foo::Number b);
+```
+
+这种情况下，typemap依然可以应用到合适的参数上，即使typemap的类型名不总能匹配`int`。实际上，这种跟踪类型的能力是SWIG的重要部分，所有的目标语言模块都为基础类型定义了一组typemap。同时，没有必要为`typedef`定义新的typemap。
+
+
+
+除了跟踪类型名字，typemap还可以特别指定去匹配特定的参数名。例如，你写了如下代码：
+
+```{c}
+%typemap(in) double nonnegative {
+  $1 = PyFloat_AsDouble($input);
+  if ($1 < 0) {
+    PyErr_SetString(PyExc_ValueError, "argument must be nonnegative.");
+    SWIG_fail;
+  }
+}
+...
+double sin(double x);
+double cos(double x);
+double sqrt(double nonnegative);
+typedef double Real;
+double log(Real nonnegative);
+```
+
+在对输入参数进行转换的情况下，typemap可以被定义成能处理连续参数的样式。例如：
+
+```{c}
+%typemap(in) (char *str, int len) {
+  $1 = PyString_AsString($input); 	/* char *str */
+  $2 = PyString_Size($input); 		/* int len */
+}.
+..
+int count(char *str, int len, char c);
+```
+
+这种情况下，目标语言的一个输入对象被扩展成一对C语言参数。这个例子还展示了不常用的变量命名方案，$1、$2，诸如此类等。
+
+
+
+### 11.1.4 重用typemap
+
+Typemap一般用于指定的类型和参数名模式。但是，也可以被拷贝和复制。这样做的一种方式是想下面这样赋值：
+
+```{c}
+%typemap(in) Integer = int;
+%typemap(in) (char *buffer, int size) = (char *str, int len);
+```
+
+更通用的拷贝形式是使用如下的`%apply`指令：
+
+```{c}
+%typemap(in) int {
+/* Convert an integer argument */
+...
+}%
+typemap(out) int {
+/* Return an integer value */
+...
+}
+/* Apply all of the integer typemaps to size_t */
+%apply int { size_t };
+```
+
+`%apply`指令仅仅是把针对某种类型的所有typemap应用到另外一种类型上。
+
+<!-- 注意：可以在%apply指令的{...}中使用逗号分隔的类型。 -->
+
+需要注意是是，没有必要为某种类型的typedef拷贝新的typemap。例如，如果你有如下代码：
+
+```{c}
+typedef int size_t;
+```
+
+SWIG就已经知道应用`int`的typemap了，不需要再做其他工作。
+
+
+
+### 11.1.5 使用typemap能干什么
+
+使用typemap的主要目的就是为C/C++数据类型层面定义包装器的行为。当前typemap可以定位6种通用类别的问题：
+
+
+
+- **参数处理(Argument Handing)**
+
+  > int foo(**int x, double y, char *s**);
+
+  + **输入参数转换("in" typemap)**
+  +  **重载(overloading)函数输入参数类型转换检查("typecheck" typemap)**
+  + **输出产出处理("argout" typemap)**
+  + **输入参数值的检查("check" typemap)**
+  + **输入参数值的初始化("arginit" typemap)**
+  + **默认参数("default" typemap)**
+  + **输入参数资源管理("freearg" typemap)**
+
+- **返回值处理（Return Value Handling）**
+
+  > int **foo**(int x, double y, char *s);
+
+  + ​
+
+
+
+
+
+
+
+
+
+
+
+
+
