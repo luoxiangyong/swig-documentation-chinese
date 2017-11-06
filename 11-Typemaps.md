@@ -2,13 +2,19 @@
 author:"罗祥勇"
 email: "solo_lxy@126.com"
 github:"https://github.com/luoxiangyong"
+tags:
+  - swig
+  - C/C++
+  - Java
+  - Python
+  - Ruby
 ---
 
-
+[TOC]
 
 # 11 Typemaps
 
-
+[^luoxiangyong-swig]: 请不要随意拷贝本人的劳动成果 {{github}} 
 
 ## 11.1 介绍
 
@@ -749,4 +755,127 @@ foo<int, Integer> *
 foo<int, int> *x
 foo<int, int> *
 ```
+
+Typemap规约一般总是应用于最左边的类型。只有最左边的的不能匹配了才会向右规约。这种行为意味着你可以为`foo<int,Integer>`定义一个typemap,这样的话`foo<Integer,int>`typemap将永远不会匹配。这个技巧很少有人了解，实践中也很少有人这么干。当然，你可以使用这个技巧迷惑你的同事。
+
+作为澄清，值得强调的是typedef匹配仅仅是typedef规约的过程，SWIG并不会搜索每一个可能的typedef。==假设声明了一个类型，它只会规约类型，不会在查找它的typedef定义==[^luoxiangyong-note-type-reduction]。例如，对于类型`Struct`，下面的typemap不会用于`aStruct`参数，因为`Struct`已经全部规约了。
+
+```c
+struct Struct {...};
+typedef Struct StructTypedef;
+%typemap(in) StructTypedef {
+...
+}
+void go(Struct aStruct);
+```
+
+[^luoxiangyong-note-type-reduction]: 这段翻译的可能有点问题，大致的意思是说，一旦找到它的类型，关于该类型的其他typedef就不会再搜索了，针对这些typedef类型的定义的typemap也不会使用。
+
+
+
+### 11.3.3 默认的typemap匹配规则
+
+如果即使使用typedef规约，基础匹配规则也没有找到合适的匹配，SWIG就会使用默认的匹配规则查找合适的typemap。这些通用typemap基于`SWIGTYPE`基础类型。例如，指针使用`SWIGTYPE *`，参考使用`SWIGTYPE *`。更确切地说应该是，这些规则基于C++模板偏特化（template partial specialization）匹配规则，C++编译器使用这种规则查找合适的偏特化模板。这意味着匹配从一般typemap中选择最特化的版本使用。例如，当查找`int const *`时，根据规则，会在匹配`SWIGTYPE *`之前先匹配`SWIGTYPE const *`,会在匹配`SWIGTYP`之前先匹配`SWIGTYPE *`。
+
+大多数的SWIG语言模块针对C语言的原始类型(primitive types)都定义了默认的typemap。这些定义全部都比较直接。例如，针对原始类型的值或const引用的列集可能如下编写：
+
+```c
+%typemap(in) int "... convert to int ...";
+%typemap(in) short "... convert to short ...";
+%typemap(in) float "... convert to float ...";
+...
+%typemap(in) const int & "... convert ...";
+%typemap(in) const short & "... convert ...";
+%typemap(in) const float & "... convert ...";
+...
+```
+
+因为typemap匹配所有的typedef声明，通过值或const引用定义的任何原始类型的typedef都可以使用这些定义。绝大部分的目标语言模块同时还为char指针和char数组定义了typemap用以处理字符串，所以这样的非默认的类型也同样可以像原始类型一样使用基础的typemap，它们提供了比默认typemap更好的匹配规则。
+
+下面是一组语言模块提供典型的默认类型，%typemap("in")的定义：
+
+```c
+%typemap(in) SWIGTYPE & { ... default reference handling ... };
+%typemap(in) SWIGTYPE * { ... default pointer handling ... };
+%typemap(in) SWIGTYPE *const { ... default pointer const handling ... };
+%typemap(in) SWIGTYPE *const& { ... default pointer const reference handling ... };
+%typemap(in) SWIGTYPE[ANY] { ... 1D fixed size arrays handlling ... };
+%typemap(in) SWIGTYPE [] { ... unknown sized array handling ... };
+%typemap(in) enum SWIGTYPE { ... default handling for enum values ... };
+%typemap(in) const enum SWIGTYPE & { ... default handling for const enum reference values ... };
+%typemap(in) SWIGTYPE (CLASS::*) { ... default pointer member handling ... };
+%typemap(in) SWIGTYPE { ... simple default handling ... };
+```
+
+如果你想更改SWIG对简单指针的处理方式，你可以重新定义`SWIGTYPE *`。需要注意的是，简单默认的typemap规则用于匹配简单类型，不用用于匹配其他规则：
+
+```c
+%typemap(in) SWIGTYPE { ... simple default handling ... }
+```
+
+这个typemap非常重要，因为当调用或放回值类型时就会触发它。例如，如果你有如下声明：
+
+```c
+double dot_product(Vector a, Vector b);
+```
+
+`Vector`类型就会匹配`SWIGTYPE`。`SWIGTYPE`的默认实现就是讲值类型转换为指针类型（前面的章节讲过）。
+
+通过重新定义`SWIGTYPE`类型，可以实现其他的行为。例如，如果你清除了所有针对`SWIGTYPE`的typemap，SWIG将不能包装未知的数据类型（这些类型可能对调试来说比较重要）了。然而，你可以修改`SWIGTYPE`,将对象列集为对象而不是转换为指针。
+
+考虑如下的typemap定义，SWIG会为enum查找最佳的匹配，代码如下：
+
+```c
+%typemap(in) const Hello & { ... }
+%typemap(in) const enum SWIGTYPE & { ... }
+%typemap(in) enum SWIGTYPE & { ... }
+%typemap(in) SWIGTYPE & { ... }
+%typemap(in) SWIGTYPE { ... }
+
+enum Hello {};
+const Hello &hi;
+```
+
+那么最上面的typemap将会被选择，不因为它最先被定义，而是因为它是被包装类型的最贴切的匹配。如果上面的类型没有定义，就会选择使用接下来的类型。
+
+探究默认typemap的最佳方式就是查看相关目标语言的模块定义。这些typemap的定义一般放在SWIG库路径下的java.swg，csharp.swg等文件中。但是，对许多目标语言来说，这些typemap定义都隐藏在复杂的宏定义中，因此，查看这些默认typemap的比较好地方式是查看预处理器的输出，可以通过在接口文件上运行`swig -E`命令达此目的。实践中，最好的方式是通过[调试typemap的模式匹配](#debugging-typemap-pattern-matching)选项，后面会讲到。
+
+> 兼容性注释：默认的typemap匹配规则在SWIG-2.0.0版本做了调整，将简单的匹配方案调整为当前的使用C++的类模板偏特化匹配规则。
+
+### 11.3.4 多个参数的typemap
+
+当指定多个参数的typemap时，它的优先级要高于但给参数的typemap。例如：
+
+```c
+%typemap(in) (char *buffer, int len) {
+	// typemap 1
+}
+
+%typemap(in) char *buffer {
+	// typemap 2
+}
+
+void foo(char *buffer, int len, int count);  // (char *buffer, int len)
+void bar(char *buffer, int blah); 			// char *buffer
+```
+
+多个参数的typemap写匹配限制更多。所有的类型和参数都必须匹配。
+
+### 11.3.5 同C++模板的匹配方式的对比
+
+
+
+
+
+### 11.3.6 调试typemap的模式匹配
+
+<span id="debugging-typemap-pattern-matching" />
+
+有两个用于调试的命令行参数可用于调试typemap，`-debug-tmsearch`和`-debug-tmused`。
+
+
+
+
+
+## 11.4 代码生成规则
 
