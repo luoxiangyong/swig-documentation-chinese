@@ -273,14 +273,14 @@ SWIG就已经知道应用`int`的typemap了，不需要再做其他工作。
 
   > **int** foo(int x, double y, char *s) throw(**MemoryError, IndexError**);
 
-  + 处理C++异常说明("throw" typemap)
+  + **处理C++异常说明("throw" typemap)**
 
 - **全局变量(Global Variables)**
 
   > **int foo;**
 
-  + 全局变量的赋值("varin" typemap)
-  + 返回全局变量("varout" typemap)
+  + **全局变量的赋值("varin" typemap)**
+  + **返回全局变量("varout" typemap)**
 
 - **成员变量(Member Variables)**
 
@@ -289,7 +289,7 @@ SWIG就已经知道应用`int`的typemap了，不需要再做其他工作。
   > };
 
 
-  + 对类或结构体的成员进行赋值("memberin" typemap)
+  + **对类或结构体的成员进行赋值("memberin" typemap)**
 
 - **创建常量(Constant Creation)**
 
@@ -298,7 +298,7 @@ SWIG就已经知道应用`int`的typemap了，不需要再做其他工作。
   > %constant int BAR = 42;
   > enum { ALE, LAGER, STOUT };
 
-  + 常量的创建("consttab"或者"constcode" typemap)
+  + **常量的创建("consttab"或者"constcode" typemap)**
 
 每个typemap我们都会做简短地描述。某些语言的模块也会定义额外的typemap。例如，Java模块就定义了一大堆typemap,用于控制Java绑定(binding)的各个方面。请参考各语言的特定文档了解细节。
 
@@ -359,7 +359,7 @@ SWIG的%feature也可以看做是切面。像%exception这样的特征也具备�
 
 
 
-### 11.1.8 本章剩下内容要将什么
+### 11.1.8 本章剩下内容要讲什么
 
 本章剩下的内容会给像了解如何编写typemap的人们提供详细信息。这些信息对那些想给新的目标语言编写模块的人特别重要。高级用户可以使用这些信息编写应用特定的类型转换规则。
 
@@ -381,6 +381,372 @@ SWIG的%feature也可以看做是切面。像%exception这样的特征也具备�
 %typemap(method [, modifiers]) typelist code ;
 ```
 
-method用于指定定义什么样的typemap，它是个简单的名字。这些名字通常像这样："in"，"out"， 或
+*method*用于指定定义什么样的typemap，它是个简单的名字。这些名字通常像这样："in"，"out"， 或
 "argout"。这些方法的目的后面会解释。
+
+*modifiers*是一个可选的以逗号分隔，`name="value"`形式的列表。它们给typemap提供额外的信息，一般都是目标语言特有的，被称为typemap的属性(attibutes)。
+
+*typelist*是typemap要匹配的C++数据类型模式的列表。一般形式描述如下:
+
+```makefile
+typelist : typepattern [, typepattern, typepattern, ... ] ;
+typepattern : type [ (parms) ]
+			| type name [ (parms) ]
+			| ( typelist ) [ (parms) ]
+```
+
+每种类型模式可以是：简单类型、简单类型和参数名、多参数typemap类型的列表。除此之外，每个类型模式都可以参数化成暂存变量列表(params)。其用途后面也会简短描述。
+
+*code*指定typemap的代码段。通常都是C/C++代码，像C\#和Java这样的静态类型目标语言，代码段可能包含目标语言代码。可以采用以下几种形式：
+
+```makefile
+code : 	 { ... }
+		| " ... "
+		| %{ ... %}
+```
+
+注意，预处理器会扩展{}界定符号里面的代码，另外两种格式的界定符号不做扩展，参考[预处理和typemap](#preprocessor-and-typemap)了解细节。下面是一些有效的typemap写法：
+
+```c
+/* Typemap with extra argument name */
+%typemap(in) int nonnegative {
+	...
+}
+/* Multiple types in one typemap */
+%typemap(in) int, short, long {
+	$1 = SvIV($input);
+}
+/* Typemap with modifiers */
+%typemap(in,doc="integer") int "$1 = scm_to_int($input);";
+/* Typemap applied to patterns of multiple arguments */
+%typemap(in) (char *str, int len),
+(char *buffer, int size)
+{
+  $1 = PyString_AsString($input);
+  $2 = PyString_Size($input);
+}
+/* Typemap with extra pattern parameters */
+%typemap(in, numinputs=0) int *output (int temp),
+long *output (long temp)
+{
+	$1 = &temp;
+}
+```
+
+
+
+### 11.2.2 Typemap作用域
+
+Typemap一旦定义，跟在后面的所有声明都将使用这些规则。你可以在输入文件的需要的地方重新定义typemap。例如：
+
+```c
+// typemap1
+%typemap(in) int {
+	...
+}
+int fact(int); // typemap1
+int gcd(int x, int y); // typemap1
+// typemap2
+%typemap(in) int {
+	...
+}
+int isprime(int); // typemap2
+```
+
+对%extend特征指令，typemap的作用域规则不太一样。%extend用来给结构或类定义定义新的声明。因为如此，它使用在结构或类定义处定义的 typemap。举个例子：
+
+```c
+class Foo {
+	...
+};
+%typemap(in) int {
+	...
+}
+%extend Foo {
+  int blah(int x); 	  // typemap has no effect. Declaration is attached to Foo which
+  					// appears before the %typemap declaration.
+};
+```
+
+
+
+### 11.2.3 拷贝typemap
+
+使用赋值操作可以拷贝typemap。例如：
+
+```c
+%typemap(in) Integer = int;
+```
+
+或则：
+
+```c
+%typemap(in) Integer, Number, int32_t = int;
+```
+
+一种类型一般会有一组不同的typemap来控制。例如：
+
+```c
+%typemap(in) int { ... }
+%typemap(out) int { ... }
+%typemap(varin) int { ... }
+%typemap(varout) int { ... }
+```
+
+为了拷贝这些typemap到新的类型，可以使用`%apply`指令。例如：
+
+```c
+%apply int { Integer }; 		// Copy all int typemaps to Integer
+%apply int { Integer, Number };  // Copy all int typemaps to both Integer and Number
+```
+
+`%apply`使用与`%typemap`一样的规则，例如：
+
+```c
+%apply int *output { Integer *output }; // Typemap with name
+%apply (char *buf, int len) { (char *buffer, int size) }; // Multiple arguments
+```
+
+### 11.2.4 删除typemap
+
+要删除一个typemap，可以简单地将其代码段设为空，例如：
+
+```c
+%typemap(in) int; 				// Clears typemap for int
+%typemap(in) int, long, short; 	 // Clears typemap for int, long, short
+%typemap(in) int *output;
+```
+
+`%clear`指令可以清除指定类型的所有typemap，例如：
+
+```c
+%clear int; 					// Removes all types for int
+%clear int *output, long *output;
+```
+
+> 因为SWIG的默认行为是使用typemap定义的，清除基础数据类型如`int`将会使该类型不可用，除非你在清除了后立马再定义一组新的typemap。
+
+### 11.2.5 放置typemap
+
+Typemap可以在全局作用域声明，也可以在C++命名空间、类声明等处。例如：
+
+```c
+%typemap(in) int {
+	...
+}
+
+namespace std {
+  class string;
+      %typemap(in) string {
+      ...
+  }
+}
+
+class Bar {
+	public:
+    typedef const int & const_reference;
+    	%typemap(out) const_reference {
+    ...
+    }
+};
+```
+
+当typemap出现在命名空间或类中时，它的影响一直作用到输入文件结尾。但是，typemap的作用域是局部的。因此，这段代码：
+
+```c
+namespace std {
+  class string;
+    %typemap(in) string {
+    ...
+  }
+}
+```
+
+就为`std::string`定义了typemap。你可能有如下代码：
+
+```c
+namespace std {
+  class string;
+  	%typemap(in) string { /* std::string */
+  	...
+  }
+}
+
+namespace Foo {
+  class string;
+    %typemap(in) string { /* Foo::string */
+    ...
+  }
+}
+```
+
+在这个例子里，有两个完全不同的typemap应用于不同的类型(`std::string`和`Foo::string`)。
+
+为了让作用域工作，SWIG需要知道`string`定义在特殊的命名空间。在这个例子中，可以使用`class string`前置声明达此目的。
+
+
+
+## 11.3 模式匹配规则
+
+本节描述C/C++类型关联typemap的模式匹配规则。实践中使用调试选项监测模式匹配规则也将会讲述。
+
+
+
+### 11.3.1 基础匹配规则
+
+Typemap同时使用类型和名称（参数名）进行匹配。对于给定`TYPE NAME`对，使用如下规则查找匹配。第一个找到的typemap的先被使用。
+
++ 精确匹配 *TYPE*和*NAME*的typemap
++ 仅仅精确匹配*TYPE*E*的typemap
++ 如果*TYPE*是C++模板类型*T < TPARMS >*,*TPARMS *为模板参数，类型从模板参数中剔出来，使用如下的规则：
+  - 精确匹配 *TYPE*和*NAME*的typemap
+  - 仅仅精确匹配*TYPE*E*的typemap
+
+如果*TYPE*包含修饰符（const、volatile等），一次去掉(strip)一个修饰符形成新的类型，使用上面的规则进行匹配。左边的修饰符最先被去掉，最右边的最后被去掉。例如`int const*const`第一次被去除修饰符后变成`int *const`，接下来变成`int *`。
+
+如果*TYPE*是数组，使用如下的转换：
+
++ 将所有的维度都替换为[ANY]，得到通用的数组typemap
+
+  ​
+
+为说明问题，假设有下面的代码：
+
+```c
+int foo(const char *s);
+```
+
+为了给`const char *s`找到合适的typemap，SWIG将搜索如下的typemap:
+
+```c
+const char *s // Exact type and name match
+const char *  // Exact type match
+char *s 	 // Type and name match (qualifier stripped)
+char * 		 // Type match (qualifier stripped)
+```
+
+当找到多于一个的typemap时，只使用第一个匹配。下面这个例子展示了一些应用基础匹配规则的例子：
+
+```c
+%typemap(in) int *x {
+	... typemap 1
+}
+%typemap(in) int * {
+	... typemap 2
+}
+%typemap(in) const int *z {
+	... typemap 3
+}
+%typemap(in) int [4] {
+	... typemap 4
+}
+%typemap(in) int [ANY] {
+	... typemap 5
+}
+void A(int *x); 			// int *x rule (typemap 1)
+void B(int *y); 			// int * rule (typemap 2)
+void C(const int *x); 		// int *x rule (typemap 1)
+void D(const int *z); 		// const int *z rule (typemap 3)
+void E(int x[4]); 			// int [4] rule (typemap 4)
+void F(int x[1000]); 		// int [ANY] rule (typemap 5)
+```
+
+> 兼容性注释：SWIG-2.0.0引入一次剔除一个修饰符的规则。先前的版本一次将所有的修饰符都剔除了。
+
+
+
+### 11.3.2 Typedef匹配规约(reduction)
+
+如果使用前面的规则没有找到任何匹配，SWIG应用typedef匹配规约，然后在规约后的类型上继续使用一样的规则重复查找。为演示，假设有如下代码：
+
+```c
+%typemap(in) int {
+	... typemap 1
+}
+typedef int Integer;
+void blah(Integer x);
+```
+
+为找到`Integer x`的typemap，SWIG首先查找如下typemap:
+
+```c
+Integer x
+Integer
+```
+
+没找到的话，使用`Integer -> int`规约，然后重复匹配：
+
+```bash
+int x
+int --> match: typemap 1
+```
+
+即使通过typedef，两个类型是一样的，SWIG还是允许为它们分别定义不同的typemap。这个特性允许你对自己感兴趣的类型自定义单独的typemap。例如你写了如下代码：
+
+```c
+typedef double pdouble; // Positive double
+// typemap 1
+%typemap(in) double {
+	... get a double ...
+}
+// typemap 2
+%typemap(in) pdouble {
+	... get a positive double ...
+}
+double sin(double x); 		// typemap 1
+pdouble sqrt(pdouble x); 	// typemap 2
+```
+
+当规约类型时，一次应用一次typedef规约。匹配过程会一直进行下去，除非找到活没有更多的规约可用。
+
+对于复杂类型，规约过程可能会生成一长串模式。考虑如下：
+
+```c
+typedef int Integer;
+typedef Integer Row4[4];
+void foo(Row4 rows[10]);
+```
+
+为匹配`Row4 rows[10]`参数，SWIG可能检查如下模式，直到它找到合适的匹配:
+
+```ruby
+Row4 rows[10]
+Row4 [10]
+Row4 rows[ANY]
+Row4 [ANY]
+# Reduce Row4 --> Integer[4]
+Integer rows[10][4]
+Integer [10][4]
+Integer rows[ANY][ANY]
+Integer [ANY][ANY]
+# Reduce Integer --> int
+int rows[10][4]
+int [10][4]
+int rows[ANY][ANY]
+int [ANY][ANY]
+```
+
+对于像模板这样的参数化类型，情况更复杂。假设有如下的声明：
+
+```c
+typedef int Integer;
+typedef foo<Integer,Integer> fooii;
+void blah(fooii *x);
+```
+
+如下的typemap模式将会被搜索，用于匹配参数`fooii *x`：
+
+```ruby
+fooii *x
+fooii *
+# Reduce fooii --> foo<Integer,Integer>
+foo<Integer,Integer> *x
+foo<Integer,Integer> *
+# Reduce Integer -> int
+foo<int, Integer> *x
+foo<int, Integer> *
+# Reduce Integer -> int
+foo<int, int> *x
+foo<int, int> *
+```
 
