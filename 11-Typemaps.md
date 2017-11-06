@@ -1,3 +1,11 @@
+---
+author:"罗祥勇"
+email: "solo_lxy@126.com"
+github:"https://github.com/luoxiangyong"
+---
+
+
+
 # 11 Typemaps
 
 
@@ -88,7 +96,7 @@ Tcl_Obj *Tcl_NewIntObj(long value);
 }
 ```
 
-第一次看到这样的代码，你肯定会迷迷糊糊地。但这真的是没什么大不了的。第一个typemap("in" typemap)用来从目标语言转换数值(value)到C语言。第二个typemap("out" typemap)用于从C语言转换数据到目标语言。每个typemap的内容都是一小段代码片段，直接插入SWIG生成的包装函数代码中。这些代码一般是C或C++代码，通过包装代码生成器处理后插入包装函数中。需要注意的是，某些目标语言的typemap也允许目标语言代码的插入。在这些代码中，带$前缀的特殊变量会自动展开。这些变量只是C/C++语言变量的占位符号，经处理后会插入最终的包装代码中。$input表示需要转换到C/C++的输入对象，$result表示包装函数要返回的对象。$1表示C/C++变量，它的类型就是typemap申明中(这个例子中的`int`)指定的。
+第一次看到这样的代码，你肯定会迷迷糊糊地。但这真的是没什么大不了的。第一个typemap("in" typemap)用来从目标语言转换数值(value)到C语言。第二个typemap("out" typemap)用于从C语言转换数据到目标语言。每个typemap的内容都是一小段代码片段，直接插入SWIG生成的包装函数代码中。这些代码一般是C或C++代码，通过包装代码生成器处理后插入包装函数中。需要注意的是，某些目标语言的typemap也允许目标语言代码的插入。在这些代码中，带\$前缀的特殊变量会自动展开。这些变量只是C/C++语言变量的占位符号，经处理后会插入最终的包装代码中。\$input表示需要转换到C/C++的输入对象，$result表示包装函数要返回的对象。\$1表示C/C++变量，它的类型就是typemap申明中(这个例子中的`int`)指定的。
 
 
 
@@ -241,14 +249,12 @@ SWIG就已经知道应用`int`的typemap了，不需要再做其他工作。
 
 使用typemap的主要目的就是为C/C++数据类型层面定义包装器的行为。当前typemap可以定位6种通用类别的问题：
 
-
-
 - **参数处理(Argument Handing)**
 
   > int foo(**int x, double y, char *s**);
 
   + **输入参数转换("in" typemap)**
-  +  **重载(overloading)函数输入参数类型转换检查("typecheck" typemap)**
+  + **重载(overloading)函数输入参数类型转换检查("typecheck" typemap)**
   + **输出产出处理("argout" typemap)**
   + **输入参数值的检查("check" typemap)**
   + **输入参数值的初始化("arginit" typemap)**
@@ -259,17 +265,122 @@ SWIG就已经知道应用`int`的typemap了，不需要再做其他工作。
 
   > int **foo**(int x, double y, char *s);
 
-  + ​
+  - **函数返回值转换（"out" typemap)**
+  - **返回值资源管理("ret" typemap)**
+  - **新分配对象的资源管理("newfree" typemap)**
+
+- **异常处理(Exception Handling)**
+
+  > **int** foo(int x, double y, char *s) throw(**MemoryError, IndexError**);
+
+  + 处理C++异常说明("throw" typemap)
+
+- **全局变量(Global Variables)**
+
+  > **int foo;**
+
+  + 全局变量的赋值("varin" typemap)
+  + 返回全局变量("varout" typemap)
+
+- **成员变量(Member Variables)**
+
+  > struct Foo {
+  > ​	**int x[20];**
+  > };
+
+
+  + 对类或结构体的成员进行赋值("memberin" typemap)
+
+- **创建常量(Constant Creation)**
+
+  > \#define FOO 3
+  >
+  > %constant int BAR = 42;
+  > enum { ALE, LAGER, STOUT };
+
+  + 常量的创建("consttab"或者"constcode" typemap)
+
+每个typemap我们都会做简短地描述。某些语言的模块也会定义额外的typemap。例如，Java模块就定义了一大堆typemap,用于控制Java绑定(binding)的各个方面。请参考各语言的特定文档了解细节。
 
 
 
+### 11.1.6 Typemap不可以干什么？
+
+Typemap不能用于给C/C++的声明定义属性(properties)。例如，比方说你有下面的声明：
+
+```{c}
+Foo *make_Foo(int n);
+```
+
+你想告诉SWIG`make_Foo(int n)`要返回一个新的分配对象（可能是为了提供更好的内存分配策略）。显然`make_Foo(int n)`不是类型`Foo *`关联的属性。因此，如果想达到这样的目的，需要使用SWIG提供的另外自定义机制(%feature)。请查看[自定义属性](#customizaton-features)章节连接详情。
 
 
 
+Typemap也不能用于重新组织或装换参数的顺序。例如，你有如下的函数：
+
+```{c}
+void foo(int, char *);
+```
+
+你不能使用typemap来交换参数，达到如下的目的：
+
+```python
+foo("hello",3) # Reversed arguments
+```
+
+如果你想更改函数的调用规则，可以像下面一样写一个帮助函数(helper function)：
+
+```C
+%rename(foo) wrap_foo;
+%inline %{
+void wrap_foo(char *s, int x) {
+	foo(x,s);
+}
+%}
+```
 
 
 
+### 11.1.7 面向切面编程的相似性
+
+SWIG与面向切面编程（[Aspect Oriented Programming](https://en.wikipedia.org/wiki/Aspect-oriented_programming)）是相似的。Typemap中关于[AOP术语](https://en.wikipedia.org/wiki/Aspect-oriented_programming#Terminology)可以表述如下：
+
++ 横切关注点(cross-cutting concerns): 横切关注点就是typemap实现的功能模块，主要用于在目标语言和C/C++语言互相间列集类型。
+
++ 增强(Advice,也叫**通知**): typemap的代码体，只要列集需要就会执行。
+
++ 切点(Pointcut)：切点就是typemap生成的包装代码放置的位置。
+
++ 切面(Aspect)：切面就是切点和增强的组合，因此每个typemap都是切面。
+
+  ​
+
+SWIG的%feature也可以看做是切面。像%exception这样的特征也具备横切关注点的特征，因为它也可以包装用于添加日志或异常处理的功能。
 
 
 
+### 11.1.8 本章剩下内容要将什么
+
+本章剩下的内容会给像了解如何编写typemap的人们提供详细信息。这些信息对那些想给新的目标语言编写模块的人特别重要。高级用户可以使用这些信息编写应用特定的类型转换规则。
+
+
+
+因为typemap与底层的C++类型系统严格绑定，接下来的章节假设你熟悉一下C++基础概念：值、指针、引用、数组、类型修饰符（如：const）、结构体、命名空间、模板以及内存分配。如果你不了解的话建议去看看Kernighan and Ritchie的《The C Programming Language》和Stroustrup的《The C++ Programming Language》。
+
+
+
+## 11.2 Typemap规则说明
+
+本章主要描述%typemap指令的行为。
+
+### 11.2.1 定义typemap
+
+新的typemap使用%typemap指令定义。一般格式如下（以[...]包含的部分是可选的）：
+
+```c
+%typemap(method [, modifiers]) typelist code ;
+```
+
+method用于指定定义什么样的typemap，它是个简单的名字。这些名字通常像这样："in"，"out"， 或
+"argout"。这些方法的目的后面会解释。
 
