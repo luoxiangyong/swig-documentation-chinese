@@ -1,6 +1,6 @@
 {
 	"title":"SWIG手册与注释",
-	
+	"language" : "zh-hans"
 	"plugins": [
 		"highlight",
 		"lunr",
