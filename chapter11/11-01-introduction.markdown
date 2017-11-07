@@ -83,13 +83,13 @@ Tcl_Obj *Tcl_NewIntObj(long value);
 
 给一个简单的例子更好理解。如果你想包装如下的函数：
 
-```{c}
+```c
 int gcd(int x, int y);	
 ```
 
 包装函数可能如下：
 
-```{c}
+```c
 PyObject *wrap_gcd(PyObject *self, PyObject *args) {
   int arg1;
   int arg2;
@@ -175,7 +175,7 @@ double log(Real nonnegative);
 
 在对输入参数进行转换的情况下，typemap可以被定义成能处理连续参数的样式。例如：
 
-```{c}
+```c
 %typemap(in) (char *str, int len) {
   $1 = PyString_AsString($input); 	/* char *str */
   $2 = PyString_Size($input); 		/* int len */
@@ -217,6 +217,7 @@ typemap(out) int {
 <!-- 注意：可以在%apply指令的{...}中使用逗号分隔的类型。 -->
 
 需要注意是是，没有必要为某种类型的typedef拷贝新的typemap。例如，如果你有如下代码：
+
 
 ```c
 typedef int size_t;
@@ -290,7 +291,7 @@ SWIG就已经知道应用`int`的typemap了，不需要再做其他工作。
 
 Typemap不能用于给C/C++的声明定义属性(properties)。例如，比方说你有下面的声明：
 
-```{c}
+```c
 Foo *make_Foo(int n);
 ```
 
@@ -300,7 +301,7 @@ Foo *make_Foo(int n);
 
 Typemap也不能用于重新组织或装换参数的顺序。例如，你有如下的函数：
 
-```{c}
+```c
 void foo(int, char *);
 ```
 
