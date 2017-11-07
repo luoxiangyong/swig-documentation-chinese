@@ -1,0 +1,10 @@
+{
+	"plugins": [
+		"highlight",
+		"lunr",
+		"sharing",
+		"fontsettings",
+		"livereload",
+		"search"
+	]
+}

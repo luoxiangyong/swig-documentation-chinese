@@ -14,7 +14,7 @@ tags:
 
 # 11 Typemaps
 
-[^luoxiangyong-swig]: 请不要随意拷贝本人的劳动成果 {{github}} 
+[^luoxiangyong-swig]: 请不要随意拷贝本人的劳动成果 {{github}}
 
 ## 11.1 介绍
 

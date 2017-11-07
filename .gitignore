@@ -1,0 +1,48 @@
+# gitbook
+/_book/
+
+# Python
+*.py[cd]
+
+# jeryll
+/_sites/
+
+# cmake
+/cmake-*-build/
+/build-*/
+/OUT/
+
+# C/C++
+*.o
+*.obj
+*.so
+*.dll
+*.lib
+*.ilk
+*.pdb
+
+
+# Java
+*.class
+/target/
+
+# gradle
+.gradle
+
+# jekyll
+_site
+.sass-cache
+.jekyll-metadata
+
+# node.js
+node_modules
+
+.DS_Store
+*/.DS_Store
+*/*/.DS_Store
+
+
+# misc temp files
+*.*~
+~*.*
+
