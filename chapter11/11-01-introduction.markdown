@@ -123,7 +123,7 @@ PyObject *wrap_gcd(PyObject *self, PyObject *args) {
 
 正如名字所暗含的意思，typemap的目的就是在目标语言中映射("**map**")C语言数据类型。一旦某个C语言数据类型的typemap被定义，输入文件中所有出现的该类型都会应用其特征。例如：
 
-```{c}
+```c
 /* Convert from Perl --> C */
 %typemap(in) int {
 	$1 = SvIV($input);
@@ -136,7 +136,7 @@ int count(char *s, char *t, int max);
 
 匹配typemap到其相应的C语言数据类型不是简单的文本匹配。事实上，typemap全面内置(builtin)于底层的类型系统中。因此，typemap并不受typedef、namespace或其他可能会隐藏底层类型的声明的影响。例如，可能你有如下代码：
 
-```{c}
+```c
 /* Convert from Ruby--> C */
 %typemap(in) int {
 	$1 = NUM2INT($input);
@@ -157,7 +157,7 @@ int spam(foo::Number a, foo::Number b);
 
 除了跟踪类型名字，typemap还可以特别指定去匹配特定的参数名。例如，你写了如下代码：
 
-```{c}
+```c
 %typemap(in) double nonnegative {
   $1 = PyFloat_AsDouble($input);
   if ($1 < 0) {
@@ -192,14 +192,14 @@ int count(char *str, int len, char c);
 
 Typemap一般用于指定的类型和参数名模式。但是，也可以被拷贝和复制。这样做的一种方式是想下面这样赋值：
 
-```{c}
+```c
 %typemap(in) Integer = int;
 %typemap(in) (char *buffer, int size) = (char *str, int len);
 ```
 
 更通用的拷贝形式是使用如下的`%apply`指令：
 
-```{c}
+```c
 %typemap(in) int {
 /* Convert an integer argument */
 ...
