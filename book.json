@@ -1,11 +1,18 @@
 {
 	"title":"SWIG手册与注释",
 	"language" : "zh-hans",
+	"plugins" : [
+		"livereload",
+		"sharing",
+		"fontsettings",
+		"lunr",
+		"highlight"
+	],
 	"pluginsConfig": {
-            "fontsettings": {
-                "theme": "sepia",
-                "family": "serif",
-                "size":  1
-            }
-        }
+		"fontsettings": {
+			"theme": "sepia",
+			"family": "serif",
+			"size":  1
+		}
+	}
 }
