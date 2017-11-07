@@ -218,7 +218,7 @@ typemap(out) int {
 
 需要注意是是，没有必要为某种类型的typedef拷贝新的typemap。例如，如果你有如下代码：
 
-```{c}
+```c
 typedef int size_t;
 ```
 
