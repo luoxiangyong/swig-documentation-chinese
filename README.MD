@@ -5,10 +5,10 @@
 
 如果你有意愿加入，热烈欢迎。
 
-本书在gitbook上发布，可从这里访问:
+**Gitbook:** 本书在gitbook上发布，可从这里访问:
 <https://www.gitbook.com/book/luoxiangyong/swig-documentation-chinese/details>。
 
-书籍源码使用github管理，可从这里访问: 
+**Github:** 书籍源码使用github管理，可从这里访问: 
 <https://github.com/luoxiangyong/swig-documentation-chinese>
 
 ***
