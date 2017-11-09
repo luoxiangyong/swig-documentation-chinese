@@ -23,7 +23,7 @@
     * [2.6 SWIG与自动构建系统的结合](chapter02/02-06-incorporating-swig-into-a-build-system.markdown)
     * [2.7 手动代码生成](chapter02/02-07-hands-off-code-generation.markdown)
     * [2.8 SWIG与自由](chapter02/02-08-swig-and-freedom.markdown)
-* [4 脚本语言](chapter04/04-00-introduction.markdown)
+# [4 脚本语言](chapter04/04-00-introduction.markdown)
     * [4.1 语言间的关系](chapter04/04-01-the-two-language-view-of-the-world.markdown)
     * [4.2 脚本语言与C语言间的对话](chapter04/04-02-how-does-a-scripting-language-talk-to-c.markdown)
     * [4.3 创建脚本语言扩展](chapter04/04-03-building-scripting-language-extensions.markdown)
