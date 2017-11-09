@@ -1,7 +1,7 @@
 # Summary
 
-* [本书介绍](README.MD)
-* 1 序言
+# [本书介绍](README.MD)
+# 1 序言
     * [1.1 介绍](chapter01/01-01-introduction.markdown)
     * [1.2 SWIG版本](chapter01/01-02-swig-versions.markdown)
     * [1.3 SWIG许可证](chapter01/01-03-swig-license.markdown)
@@ -14,7 +14,7 @@
     * [1.10 荣誉榜](chapter01/01-10-credits.markdown)
     * [1.11 缺陷报告](chapter01/01-11-bug-reports.markdown)
     * [1.12 安装](chapter01/01-12-installation.markdown)
-* 2 介绍
+# 2 介绍
     * [2.1 什么是SWIG](chapter02/02-01-what-is-swig.markdown)
     * [2.2 为什么使用SWIG](chapter02/02-02-why-use-swig.markdown)
     * [2.3 一个示例](chapter02/02-03-a-swig-example.markdown)
@@ -27,7 +27,7 @@
     * [4.1 语言间的关系](chapter04/04-01-the-two-language-view-of-the-world.markdown)
     * [4.2 脚本语言与C语言间的对话](chapter04/04-02-how-does-a-scripting-language-talk-to-c.markdown)
     * [4.3 创建脚本语言扩展](chapter04/04-03-building-scripting-language-extensions.markdown)
-* 11 Typemap
+# 11 Typemap
     * [11.1 介绍](chapter11/11-01-introduction.markdown)
     * [11.2 Typemap规范](chapter11/11-02-typemap-specifications.markdown)
     * [11.3 模式匹配规则](chapter11/11-03-pattern-matching-rules.markdown)
@@ -45,5 +45,5 @@
     * [11.15 在typemapk间传递数据](chapter11/11-15-passing-data-between-typemaps.markdown)
     * [11.16 C++语言的this指针](chapter11/11-16-cplusplus-this-pointer.markdown)
     * [11.17 从哪儿可以获得更多信息](chapter11/11-17-where-to-go-for-more-information.markdown)
-* [附录A](appendix/A.markdown)
+# [附录A](appendix/A.markdown)
 
