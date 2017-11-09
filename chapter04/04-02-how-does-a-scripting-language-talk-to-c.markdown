@@ -77,3 +77,92 @@ $Foo = $a + 2.0; 	# Assignment
 
 ## 4.2.3 常量
 
+多数情况下，C程序或库定义了大量的常量。例如：
+
+```c
+#define RED 0xff0000
+#define BLUE 0x0000ff
+#define GREEN 0x00ff00
+```
+
+为让常量可用，它们的值在脚本语言中存储为变量`$RED, $BLUE, $GREEN`。所有的脚本语言都提供创建变量的C函数，因此安装常量比较简单。
+
+## 4.2.4 结构体与类
+
+尽管脚本元访问简单函数和变量没问题，但访问C/C++结构体和类还是有困难的。这是因为结构体的实现很大程度上与数据的表现与布局相关。因而，某些语言特征很难映射到解析器中。例如，C/C++的继承在Perl意味着什么？
+
+处理结构体最直接的技术是实现一组访问函数，隐藏底层结构题的数据呈现。例如：
+
+```c
+struct Vector {
+  Vector();
+  ~Vector();
+  double x, y, z;
+};
+```
+
+可以转换成以下一组函数：
+
+```c
+Vector *new_Vector();
+void delete_Vector(Vector *v);
+double Vector_x_get(Vector *v);
+double Vector_y_get(Vector *v);
+double Vector_z_get(Vector *v);
+void Vector_x_set(Vector *v, double x);
+void Vector_y_set(Vector *v, double y);
+void Vector_z_set(Vector *v, double z);
+```
+
+现在，你可以从解析器中这样操作：
+
+```tcl
+% set v [new_Vector]
+% Vector_x_set $v 3.5
+% Vector_y_get $v
+% delete_Vector $v
+```
+
+因为访问函数提供了访问对象内部的机制，解析器不需要知道`Vector`的实际内存呈现。
+
+## 4.2.5 代理类
+
+在某些情况下，可能需要使用底层的访问函数创建代理类，也称影子类。代理类是一种特殊的对象，它使用脚本语言实现，访问C/C++类（或结构体）,其表现得就像原始结构一样（它代理实际的C++类）。例如，你有如下的C++定义：
+
+```c
+class Vector {
+  public:
+  Vector();
+  ~Vector();
+  double x, y, z;
+};
+```
+
+代理类机制允许从解析器中使用更自然的方式访问结构体。例如，在Python中，可以这么做：
+
+```python
+>>> v = Vector()
+>>> v.x = 3
+>>> v.y = 4
+>>> v.z = -13
+>>> ...
+>>> del v
+```
+
+同样，在Perl5中可以这样：
+
+```perl
+$v = new Vector;
+$v->{x} = 3;
+$v->{y} = 4;
+$v->{z} = -13;
+```
+
+最后，使用Tcl可以这样：
+
+```tcl
+Vector v
+v configure -x 3 -y 4 -z -13
+```
+
+当使用代理类的时候，实际有两个对象一起工作，一个是脚本语言对象，一个是C++对象。如果你简单的操作了C/C++对象，该操作实际中将同时影响两个对象。
