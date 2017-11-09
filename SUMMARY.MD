@@ -1,8 +1,7 @@
 # Summary
 
-* [Introduction](README.md)
 * [本书介绍](README.MD)
-* [1 序言](1-xu-yan.md)
+* [1 序言]
   * [Introduction](chapter01/README.MD)
   * [1.1 介绍](chapter01/01-01-introduction.markdown)
   * [1.2 SWIG版本](chapter01/01-02-swig-versions.markdown)
