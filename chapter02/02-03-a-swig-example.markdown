@@ -12,7 +12,7 @@ int fact(int n) {
 }
 /* Compute n mod m */
 int my_mod(int n, int m) {
-	return(n % m);
+    return(n % m);
 }
 ```
 
@@ -38,7 +38,7 @@ extern int my_mod(int n, int m);
 
 ## 2.3.2 swig命令
 
-SWIG提供了swig命令行程序。我们可以使用它像下面这样构建一个Tcl模块(Linux系统下):
+SWIG提供了swig命令行程序。我们可以使用它像下面这样构建一个Tcl模块\(Linux系统下\):
 
 ```shell
 unix > swig -tcl example.i
@@ -55,11 +55,11 @@ unix > tclsh
 %
 ```
 
-swig命令产生一个新的文件example_wrap.c，他需要和example.c文件一起编译。绝大多数的操作系统和脚本语言现在都提供动态库支持。在我们的这个例子中，Tcl模块被编译成一个共享库。当加载后，Tcl可以访问SWIG接口文件中声明的函数及全局变量。看看生成的example_wrap.c，会发现里面乱七八糟的。但是不用担心。
+swig命令产生一个新的文件example\_wrap.c，他需要和example.c文件一起编译。绝大多数的操作系统和脚本语言现在都提供动态库支持。在我们的这个例子中，Tcl模块被编译成一个共享库。当加载后，Tcl可以访问SWIG接口文件中声明的函数及全局变量。看看生成的example\_wrap.c，会发现里面乱七八糟的。但是不用担心。
 
 ## 2.3.3 构建Perl5模块
 
-现在，让我们让这些功能用于Perl5模块。不作任何更改，请键入以下内容(Solaris系统)：
+现在，让我们让这些功能用于Perl5模块。不作任何更改，请键入以下内容\(Solaris系统\)：
 
 ```shell
 unix > swig -perl5 example.i
@@ -80,7 +80,7 @@ unix >
 
 ## 2.3.4 构建Python模块
 
-最后，让我们构建一个Python模块(Irix系统):
+最后，让我们构建一个Python模块\(Irix系统\):
 
 ```shell
 unix > swig -python example.i
@@ -118,4 +118,6 @@ print $example::My_variable + 4.5, "\n";
 2
 7.5
 ```
+
+
 
