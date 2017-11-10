@@ -2,8 +2,6 @@
 typora-root-url: .
 ---
 
-
-
 # SWIG中文手册与注释
 
 ***
@@ -43,8 +41,12 @@ typora-root-url: .
 - [个人主页](http://www.luoxiangyong.cn)
 - [GitHub](https://github.com/luoxiangyong)
 
+如果您觉得我的工作对您有帮助，请我喝杯茶呗。
+![weixin-pay](/images/weixin-pay.jpg)
+
 ***
 > 本书使用[Typora](https://www.typora.io)本地编辑，使用[GitBook](https://www.gitbook.com)在线编辑。
+
 
 
 ![cover](/cover.jpg)
