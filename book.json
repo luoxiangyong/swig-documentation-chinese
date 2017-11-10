@@ -34,13 +34,18 @@
 		"sharing",
 		"fontsettings",
 		"lunr",
-		"highlight"
+		"highlight"，
+		"github",
+		"emphasize"
 	],
 	"pluginsConfig": {
 		"fontsettings": {
 			"theme": "sepia",
 			"family": "serif",
 			"size":  1
+		},
+		"github": {
+			"url": "https://github.com/luoxiangyong"
 		}
 	}
 }

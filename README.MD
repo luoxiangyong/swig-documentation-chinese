@@ -2,7 +2,7 @@
 typora-root-url: .
 ---
 
-# SWIG中文手册与注释
+# SWIG手册与注释
 
 ***
 
@@ -29,8 +29,8 @@ typora-root-url: .
 ***
 ## 更新记录
 
-| 时间 | 说明 |
-| :---: | :---: |
+|     时间     |    说明     |
+| :--------: | :-------: |
 | 2017-11-02 | 发布版本 v0.1 |
 
 ***
@@ -39,17 +39,17 @@ typora-root-url: .
 如果你对于本书有什么建议或意见，欢迎批评指正，并联系我。
 
 - [个人主页](http://www.luoxiangyong.cn)
+
 - [GitHub](https://github.com/luoxiangyong)
 
-如果您觉得我的工作对您有帮助，请我喝杯茶呗。
-![weixin-pay](/images/weixin-pay.jpg)
+  ​
 
 ***
 > 本书使用[Typora](https://www.typora.io)本地编辑，使用[GitBook](https://www.gitbook.com)在线编辑。
 
 
 
-![cover](/cover.jpg)
+![cover](/cover_small.jpg)
 
 
 
