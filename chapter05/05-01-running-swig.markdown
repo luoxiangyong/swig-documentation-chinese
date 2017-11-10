@@ -48,6 +48,8 @@ swig [ options ] filename
 -version Show SWIG version number
 ```
 
+
+
 ## 5.1.1 输入格式
 
 SWIG的输入可以使包含ANSI C/C++的声明或包含特殊的SWIG指令。多数情况下，它是一个特殊的SWIG接口文件，文件后缀为.i或.swg。某些情况下，SWIG可以直接作用域原始的头文件或源文件上。但是，这种情况不常用，后面会解释为什么不要这么做。
@@ -68,6 +70,8 @@ int bar(int x);
 `%module`指令指定模块的名字。模块会在[模块介绍](#modules-ntroduction)节介绍。
 
 在`%{...%}`块之间的一切将原封不动的拷贝到SWIG结果生成的包装文件中。本节它主要用于包含头文件和用于使包装代码编译通过的其他声明。需要重点强调的是，需要你在SWIG的输入文件中包含了声明，这些声明不会自动出现在生成的包装代码中。因此，你需要确定在`%{...%}`中包含了合适的头文件。需要注意的是`%{...%}`包含的代码，SWIG是不会解释的。`%{...%}`的语法和语义类似yacc和bison工具中输入为文件中的声明。
+
+
 
 ## 5.1.2 SWIG输出
 
@@ -94,9 +98,75 @@ pyfiles/example.py
 
 如果指定了-outcurrentdir选项(不指定-o)，SWIG的表现和典型的C/C++编译器一样，默认输出就是当前文件夹。没有这个选项，输出文件夹就是输入文件的路径。如果-o选项和-outcurrentdir选项一起使用，-outcurrentdir被忽略，如果不指定-outdir，语言特定的文件和生成的C/C++文件输出位置相同。
 
+
+
 ## 5.1.3 注释
 
 C/C++样式的可以出现在接口文件的任何地方。在先前版本的SWIG中，注释被用于生成文档文件。但是，这个特征现在正被修复，将会在以后的发行中重新可用。
 
+
+
 ## 5.1.4 C预处理器
 
+像C语言预处理器一样，SWIG通过增强的C语言预处理器处理所有的输入文件。所有的标准预处理特性它都支持，包括：文件包含、条件编译和宏。但是，`#include`语句是被忽略的，除非你指定了-includeall命令行参数。禁用包含的原因是因为SWIG有时候被用于处理原始的C语言头文件。在这种情况下，通常你只是想扩展那些包含在提供头文件中的函数到扩展模块中，而不是该头文件所包含的所有定义（比如，系统头文件、C语言库等)。
+
+还应该注意的是，SWIG预处理器会跳过所有包含在`%{...%}`块中的代码。除此之外，预处理器还提供了一些增强宏，用起来比常规C语言预处理器更强大。这些扩展在[预处理](#preprocessor)章节会描述的。
+
+
+
+## 5.1.5 SWIG指令
+
+绝大多数的SWIG操作是通过特殊的指令控制的，它们总是带有_\$_前置符号，主要目的是为了和C语言的声明区分开来。这些指令被用于给SWIG提供线索或改变SWIG解释器的行为。
+
+因为SWIG指令不是合法的C语言语法，通常不可能在包含文件中书写。但是，SWIG指令可通过使用C语言的条件编译写在包含文件中，比如：
+
+```c
+/* header.h --- Some header file */
+/* SWIG directives -- only seen if SWIG is running */
+#ifdef SWIG
+%module foo
+#endif
+```
+
+`SWIG`是一个特殊的预处理器符号，它在输入文件被解释时是SWIG程序定义的。
+
+## 5.1.6 解释器的局限
+
+尽管SWIG可以解释多数的C/C++声明，但它没有完全实现C/C++解释器。大部分的限制是关于非常复杂的类型声明和某些高级C++特性。特别是一下这些当前不支持的特性:
+
++ 非传统的类型声明。例如，SWIG不支持下面这样的声明(尽管在C中时合法的):
+
+  ```c++
+  /* Non-conventional placement of storage specifier (extern) */
+  const int extern Number;
+  /* Extra declarator grouping */
+  Matrix (foo); // A global variable
+  /* Extra declarator grouping in parameters */
+  void bar(Spam (Grok)(Doh));
+  ```
+
+  实践中，很少（如果真有的话）有C程序员真得像这样写代码，因为这样的代码在编程书籍里几乎没被提及过。但是，如果你感到困惑，这样做了，你会发现SWIG不能正常工作（尽管我也不知道你为什么还是要这么做）。
+
++ 不推荐直接在C++源代码文件上运行SWIG。一般方法是给SWIG提供带有C++定义和声明的头文件。主要原因是，如果SWIG遇到了带作用域的声明或定义时（在C++源文件中很常见），它会直接忽略，除非对符号的声明进行了早期解析。例如：
+
+  ```c++
+  /* bar not wrapped unless foo has been defined and
+  the declaration of bar within foo has already been parsed */
+  int foo::bar(int) {
+    ... whatever ...
+  }
+  ```
+
++ 某些C++高级特性如嵌套类也支持的不全面。请查看C++[嵌套类](#nested-classes)章节获取更多信息。
+
+当遇到解释性错误时，可以使用条件编译跳过相关代码。例如：
+
+```c
+#ifndef SWIG
+... some bad declarations ...
+#endif
+```
+
+或者，你可以直接从接口文件中将其删除。
+
+SWIG不提供对C++解释器的完全支持的原因之一是，它被设计用来支持不完全的规格说明、能处理宽泛的C/C++数据类型（如，即使没有类定义或数据类型透明，SWIG也可以生成接口）。不幸的是，这种方式让它很难实现C/C++解释器的某些特性，因为编译器使用类型信息帮助解释非常复杂的声明==(for the truly curious, the primary complication in the implementation is that the SWIG parser does not utilize a separate typedef-name terminal symbol as described on p. 234 of K&R)==。
