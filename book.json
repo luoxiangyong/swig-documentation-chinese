@@ -29,7 +29,15 @@
 		"pageNumbers": true,
 		"paperSize": "a4"
 	},
-	
+	"plugins" : [
+		"livereload",
+		"sharing",
+		"fontsettings",
+		"lunr",
+		"highlight"，
+		"github",
+		"emphasize"
+	],
 	"pluginsConfig": {
 		"fontsettings": {
 			"theme": "sepia",
