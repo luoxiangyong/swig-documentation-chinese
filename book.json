@@ -1,6 +1,34 @@
 {
 	"title":"SWIG手册与注释",
 	"language" : "zh-hans",
+	"links": {
+		"sharing": {
+		    "all": null,
+		    "facebook": null,
+		    "google": null,
+		    "twitter": null,
+		    "weibo": null
+		},
+		"sidebar": {
+		    "个人主页": "http://www.luoxiangyong.cn",
+		    "书籍源码": "https://github.com/luoxiangyong/swig-documentation-chinese"
+		}
+	},
+	"output": null,
+	    "pdf": {
+		"toc": true,
+		"fontSize": 12,
+		"footerTemplate": null,
+		"headerTemplate": null,
+		"margin": {
+		    "bottom": 36,
+		    "left": 62,
+		    "right": 62,
+		    "top": 36
+		},
+		"pageNumbers": true,
+		"paperSize": "a4"
+	},
 	"plugins" : [
 		"livereload",
 		"sharing",
