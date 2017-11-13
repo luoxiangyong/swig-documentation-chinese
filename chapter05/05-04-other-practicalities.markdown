@@ -335,3 +335,52 @@ void print(const char *);
 ...
 ```
 
+匹配`%ignore`的任何函数、变量等都不会被包装，因此不能从目标语言中访问。一般使用`%ignore`指令是为了从声明中去掉某些声明，而不用非得在头文件中添加条件编译指令。但是，需要强调的是，这支队简单的声明有效。
+
+如果你想移除一整段有问题的代码，应该SWIG预处理器。
+
+> 兼容性注释：旧版本的SWIG提供了特殊的`%name`指令，用于重命名。例如：
+>
+> ```c
+> %name(output) extern void print(const char *);
+> ```
+>
+> 这个指令依然支持，但是过期了，应尽可能避免使用。`%rename`指令更强大，对原始头文件信息的支持更好。
+
+
+
+### 5.4.7.2 高级重命名支持
+
+为特定的声明编写`%rename`很简单，有时候同样的重命名规则需要应用到很多，有时是全部的SWIG输入的表示符上。例如，将所有的名字根据目标语言命名规范都做统一的命名也是非常必要的，比如在所有的包装函数前加一个统一的前缀。给每个被包装的函数重命名不实际，因此只要标示符的名字不指定的话，SWIG支持将重命名规则应用到所有声明：
+
+```c
+%rename("myprefix_%s") ""; // print -> myprefix_print
+```
+
+这也表明，`%rename`的参数可以不必是一个字符串，也可以是一个printf()一样的格式字符串。在最简单的格式中，`%s`用原始声明的名字替换。但这还不够，SWIG扩展了通常的格式字符串的语法，允许对参数应用函数(SWIG定义的)。例如，为了将所有的C函数`do_something_long()`包装的更像Java中的`doSomethingLong()`，使用`lowercamelcase`格式像下面这样表示：
+
+```c
+%rename("%(lowercamelcase)s") ""; // foo_bar -> fooBar; FooBar -> fooBar
+```
+
+一些函数课题提供参数，如_"strip"_可用来从提供的形参中剔除指定的前缀。前缀在格式字符串中指定，后面跟一个冒号:
+
+```c
+%rename("%(strip:[wx])s") ""; // wxHello -> Hello; FooBar -> FooBar
+```
+
+下面的表对目前定义的所有函数做了概要介绍，并对每个函数提供了示例。注意，它们中的部分有两个名字，一个简单点，一个更具描述性，但这两个函数是等价的:
+
+| 函数                  | 返回值                                 | 示例（in/out）          |
+| :------------------ | :---------------------------------- | ------------------- |
+| uppercase or upper  | 字符串大写                               | Print -> PRINT      |
+| lowercase or lower  | 字符串小写                               | Print -> print      |
+| title               | 第一个字符大写，其他全部小写                      | print -> Print      |
+| firstuppercase      | 第一个字符大写，其他不变                        | printIt -> PrintIt  |
+| firstlowercase      | 第一个字符小写，其他不变                        | PrintIt -> printIt  |
+| camelcase or ctitle | 第一个字符及其后跟在下划线的后面的字符大写，剩下的字符小写，下划线删除 | print_it -> PrintIt |
+| lowercamelcase or   | 跟在下划线后面的字符大写，剩下的包括第一个字符小写，下划线删除     | print_it -> printIt |
+| undercase or utitle |                                     |                     |
+|                     |                                     |                     |
+|                     |                                     |                     |
+|                     |                                     |                     |
