@@ -371,16 +371,62 @@ void print(const char *);
 
 下面的表对目前定义的所有函数做了概要介绍，并对每个函数提供了示例。注意，它们中的部分有两个名字，一个简单点，一个更具描述性，但这两个函数是等价的:
 
-| 函数                  | 返回值                                 | 示例（in/out）          |
-| :------------------ | :---------------------------------- | ------------------- |
-| uppercase or upper  | 字符串大写                               | Print -> PRINT      |
-| lowercase or lower  | 字符串小写                               | Print -> print      |
-| title               | 第一个字符大写，其他全部小写                      | print -> Print      |
-| firstuppercase      | 第一个字符大写，其他不变                        | printIt -> PrintIt  |
-| firstlowercase      | 第一个字符小写，其他不变                        | PrintIt -> printIt  |
-| camelcase or ctitle | 第一个字符及其后跟在下划线的后面的字符大写，剩下的字符小写，下划线删除 | print_it -> PrintIt |
-| lowercamelcase or   | 跟在下划线后面的字符大写，剩下的包括第一个字符小写，下划线删除     | print_it -> printIt |
-| undercase or utitle |                                     |                     |
-|                     |                                     |                     |
-|                     |                                     |                     |
-|                     |                                     |                     |
+| **函数**                    | **返回值**                             | **示例（in/out）**        |
+| :------------------------ | :---------------------------------- | --------------------- |
+| uppercase or upper        | 字符串大写                               | Print -> PRINT        |
+| lowercase or lower        | 字符串小写                               | Print -> print        |
+| title                     | 第一个字符大写，其他全部小写                      | print -> Print        |
+| firstuppercase            | 第一个字符大写，其他不变                        | printIt -> PrintIt    |
+| firstlowercase            | 第一个字符小写，其他不变                        | PrintIt -> printIt    |
+| camelcase or ctitle       | 第一个字符及其后跟在下划线的后面的字符大写，剩下的字符小写，下划线删除 | print_it -> PrintIt   |
+| lowercamelcase or lctitle | 跟在下划线后面的字符大写，剩下的包括第一个字符小写，下划线删除     | print_it -> printIt   |
+| undercase or utitle       |                                     | PrintIt -> print_it   |
+| schemify                  |                                     | print_it -> print-it  |
+| strip:[prefix]            |                                     | wxPrint  ->Print      |
+| regex:/pattern/subst/     |                                     | prefix_print -> Print |
+| command:cmd               |                                     | Print -> Prnt         |
+
+上面这些函数中最通用的是`regex`（不算上`command`，实践中它也很强大，如果考虑性能就不要使用）。这里有使用它的更多例子:
+
+```c
+// Strip the wx prefix from all identifiers except those starting with wxEVT
+%rename("%(regex:/wx(?!EVT)(.*)/\\1/)s") ""; // wxSomeWidget -> SomeWidget
+// wxEVT_PAINT -> wxEVT_PAINT
+// Apply a rule for renaming the enum elements to avoid the common prefixes
+// which are redundant in C#/Java
+%rename("%(regex:/^([A-Z][a-z]+)+_(.*)/\\2/)s", %$isenumitem) ""; // Colour_Red -> Red
+// Remove all "Set/Get" prefixes.
+%rename("%(regex:/^(Set|Get)(.*)/\\2/)s") ""; // SetValue -> Value
+// GetValue -> Value
+```
+
+像之前说的一样，所有关于`%rename`的讨论都适用于`%ignore`。事实上，事实上，后者只是前者的一个特例，忽略标识符与将其重命名为特殊的“$ignore”值一样。下面的代码片段:
+
+```c
+%ignore print;
+```
+
+和：
+
+```c
+%rename("$ignore") print;
+```
+
+是一样的，并且使用先前描述的匹配可能性，`%rename`指令可以用于选择性忽略多个声明。
+
+### 5.4.7.3 限制全局重命名规则
+
+如前几节所解释的那样，可以重命名单个声明或将重命名规则立即应用于所有声明。然而，在实践中，后者通常是不适当的，因为一般规则都有一些例外。为了处理它们，可以使用后续的匹配参数限制未命名的`%rename`指令的范围。通过SWIG，它们可以应用到输入接口文件中声明的相关属性。例如：
+
+```c
+%rename("foo", match$name="bar") "";
+```
+
+与下面的方式是一样的:
+
+```c
+%rename("foo") bar;
+```
+
+
+
