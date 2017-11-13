@@ -131,3 +131,97 @@ print Module.foo, "\n" # Print value of foo
 
 ## 5.2.3 常量
 
+可以使用`#define` 、枚举或特殊的指令`%constant`创建常量。下面的接口文件展示了一些有效的常量声明：
+
+```c
+#define I_CONST 5 // An integer constant
+#define PI 3.14159 // A Floating point constant
+#define S_CONST "hello world" // A string constant
+#define NEWLINE '\n' // Character constant
+enum boolean {NO=0, YES=1};
+enum months {JAN, FEB, MAR, APR, MAY, JUN, JUL, AUG,
+SEP, OCT, NOV, DEC};
+%constant double BLAH = 42.37;
+#define PI_4 PI/4
+#define FLAGS 0x04 | 0x08 | 0x40
+```
+
+在`#define`声明中，常量的类型是通过语法推断出来的。例如，一个小数点的数字被假定为浮点。除此之外，SWIG必须能够解析使用`#define`定义的所有符号，从而定义常量。这个约束是必要的，因为`#define`还用来定义预处理器宏，而这些宏对脚本语言来说又没太大意义。例如：
+
+```c
+#define EXTERN extern
+EXTERN void foo();
+```
+
+这种情况下，你可能不想重建一个叫`EXTERN`的常量（不知道它的值是多少）。一般情况下，SWIG不会对宏创建常量，除非它的值可以被预处理器完全确定。例如上面的例子中的声明:
+
+```c++
+#define F_CONST (double) 5 // A floating point constant with cast
+```
+
+使用常量表达式是可以的，但是SWIG不会评估它们，直接将其传递到输出文件中，让C编译器执行最终的评估(但SWIG还是会执行有限的类型检查)。
+
+对于枚举，重要的是原始的枚举定义需要包含在接口文件中（通过头文件或`%{ }%`块）。SWIG只会讲需要的枚举装换到目标语言中。它需要原始的枚举定义，从而通过C编译器得到它们的正确数值。
+
+`%constant`指令可用于更精确地根据C语言数据类型创建常量。尽管对简单数值一般不适用它，但在处理指针和其他更复杂的类型时，常常会用到它。典型情况是，当你想将原始C文件中没有定义但却要添加的常量添加到脚本语言中。
+
+## 5.2.4 关于const的简短说明
+
+C语言编程的一个常见混淆是声明中常量限定符的语义含义——特别是它和指针及其他类型限定符一起混合适用的时候。事实上，早期版本的SWIG对const的处理时不正确的，SWIG-1.3.7之后的版本修正了这个问题。
+
+从SWIG-1.3开始，不管使用了多少const，所有的变量声明都被包装成全局变量。如果一个声明被声明为const，那它就包装成只读变量。为弄清楚变量是常量与否，你需要看它最右边出现的const限定符出现的位置（出现在变量名前）。如果最右边const在其他类型的限定符之后（如，指针），则该变量就是const的。否则不是。
+
+这里有一些const声明的例子：
+
+```c
+const char a; // A constant character
+char const b; // A constant character (the same)
+char *const c; // A constant pointer to a character
+const char *const d; // A constant pointer to a constant character
+```
+
+下面是一些非const声明的例子：
+
+```c
+const char *e; // A pointer to a constant character. The pointer
+			  // may be modified.
+```
+
+这种情况下，`e`可以被改变——只有它指向的值是只读的。
+
+请注意，对于函数中的常量参数会返回值，SWIG会忽略它们的const事实，参考[const的正确性](#swig-const-correctness)获得更对信息。
+
+> 兼容性注释：SWIG将对const声明处理成只读变量的一个原因是因为，const变量的值在很多情况下会被修改。例如，一个库可能在它的API导出一个不鼓励修改的常量符号，当依然允许其他种类的内部机制更改。因此，程序员经常忽略这样一个事实，即像`char *const`这样的常量声明，所指向的底层数据也是可以被修改的——只有指针本省不能被修改。在嵌入式系统中，`const`声明可能引用一个只读的内存地址，如I/O设备的端口被映射的地址（值可以修改，但是硬件不支持写入端口）。比起对const限定符做一大堆特殊的限制，新的将const解释为只读的方式更简单，更匹配C/C++对const所作的实际语义的要求。如果真的像在旧版本的SWIG中创建常量，请使用`%constant`指令代替。例如:
+>
+> ```c
+> %constant double PI = 3.14159;
+> ```
+>
+> 或：
+>
+> ```c
+> #ifdef SWIG
+> #define const %constant
+> #endif
+> const double foo = 3.4;
+> const double bar = 23.4;
+> const int spam = 42;
+> #ifdef SWIG
+> #undef const
+> #endif
+> ...
+> ```
+
+## 5.2.5 关于`char *`的提醒
+
+在进一步讨论之前，有一点关于`char *`的警告，现在必须提到。当将字符创从脚本语言转换到C的`char *`时，指针实际指向解析器内部的字符串数据。修改这些数据通常是不推荐的。因此，一些语言显式禁止这么做。例如，在Python中，字符串是不可修改的。如果你违反了这一点，当在现实中发布你的模块后，你可能会收到大家的指责。
+
+问题的主要源头就是就地修改字符串。经典的例子就像下面的函数这样：
+
+```c
+char *strcat(char *s, const char *t)
+```
+
+尽管SWIG确实可以为其生成包装代码，但它的行为是未知的。事实上，这可能会导致你的程序崩溃，出现段错误或其他内存相关的问题。因为`s`引用到了目标语言的内部数据了，这些数据你是不能修改的。
+
+最终建议：除了用作输入数据，不要依赖`char*`。但是，也要注意：你可以使用[typemaps](#swig-typemap)改变它的行为。

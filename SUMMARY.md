@@ -27,7 +27,7 @@
     * [4.1 语言间的关系](chapter04/04-01-the-two-language-view-of-the-world.markdown)
     * [4.2 脚本语言与C语言间的对话](chapter04/04-02-how-does-a-scripting-language-talk-to-c.markdown)
     * [4.3 创建脚本语言扩展](chapter04/04-03-building-scripting-language-extensions.markdown)
-* [SWIG基础](chapter05/05-00-introduction.markdown)
+* [5 SWIG基础](chapter05/05-00-introduction.markdown)
     * [5.1 运行SWIG](chapter05/05-01-running-swig.markdown)
     * [5.2 包装简单的C声明](chapter05/05-02-wrapping-simple-c-declarations.markdown)
     * [5.3 指针和复杂对象](chapter05/05-03-Pointers and complex objects.markdown)
