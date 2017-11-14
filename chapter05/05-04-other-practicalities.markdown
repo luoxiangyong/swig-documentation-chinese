@@ -1,6 +1,6 @@
 # 5.4 其他实用性建议
 
-到目前为止，本章已经介绍了包装简单接口所需要学习的几乎所有的知识。但是，有些C程序使用一些难以映射到脚本语言接口的习惯用法。本节描述其中的一些问题。
+到目前为止，本章已经介绍了包装简单接口所需要学习的几乎所有的知识。但是，有些C程序使用了一些难以映射到脚本语言接口的习惯用法。本节将描述其中的一些问题及解决方案。
 
 ## 5.4.1 通过结构体传递值
 
@@ -237,8 +237,6 @@ void pathname_set(char *value) {
 
 在目标语言中使用它就像访问普通的变量。
 
-
-
 ## 5.4.6 创建只读变量
 
 使用`%immutable`指令可以创建只读变量:
@@ -288,8 +286,6 @@ char * const version="1.0"; 	 /* Read only variable */
 ```
 
 > 兼容性注释：只读访问以前使用一对指令`%readonly`和`%readwrite`来控制。尽管这些质量依然可以工作，但会生成警告消息。可以简单的将它们替换成`%immutable`和`%mutable`指令，就可以关闭警告。不要忘记了额外的分号！
-
-
 
 ## 5.4.7 重命名与忽略声明
 
@@ -346,8 +342,6 @@ void print(const char *);
 > ```
 >
 > 这个指令依然支持，但是过期了，应尽可能避免使用。`%rename`指令更强大，对原始头文件信息的支持更好。
-
-
 
 ### 5.4.7.2 高级重命名支持
 
@@ -412,7 +406,7 @@ void print(const char *);
 %rename("$ignore") print;
 ```
 
-是一样的，并且使用先前描述的匹配可能性，`%rename`指令可以用于选择性忽略多个声明。
+是一样的，并且使用先前描述的可能匹配，`%rename`指令可以用于选择性忽略多个声明。
 
 ### 5.4.7.3 限制全局重命名规则
 
@@ -428,5 +422,179 @@ void print(const char *);
 %rename("foo") bar;
 ```
 
+虽然这种方式没什么意思，但`match`也能应用于声明的类型，例如：`match="class"`限制匹配只应用于类声明，`match="enumitem"`限制只应用于枚举类型。SWIG还提供了这些匹配表达式的便于使用的宏，如：
+
+```c
+%rename("%(title)s", %$isenumitem) "";
+```
+
+会将所有的枚举元素首字母大写，但不改变其他声明的。类似地，还可以使用`%$isclass`,
+`%$isfunction`，`%$isconstructor`，`%$isunion`，`%$istemplate`,及 `%$isvariable`。其他的检查也是可能的，本文档不是太全，查看swig.swg文件中的“%rename predicates”部分可得到支持的匹配表达式更全的列表。
+
+除了是使用`match`匹配字符串字面量，还可以使用`regexmatch`或`notregexmatch`去做正则表达式方式的匹配。例如，为了忽略所有以"Old"结尾的函数，可以这么做：
+
+```c
+%rename("$ignore", regexmatch$name="Old$") "";
+```
+
+对于这样的简单情况，直接指定声明名的正则表达式可以更好，可以使用`regextarget`：
+
+```c
+%rename("$ignore", regextarget=1) "Old$";
+```
+
+需要注意的是，检查只针对声明名字本省，如果你想匹配C++声明的全称，就必须指定`fullname`属性:
+
+```c
+%rename("$ignore", regextarget=1, fullname=1) "NameSpace::ClassName::.*Old$";
+```
+
+对于`notregexmatch`，它只限制那些不匹配指定正则表达式的匹配。因此，除了连续大写字母的字符创以外，所有的声明都要重命名为小写：
+
+```c
+%rename("$(lower)s", notregexmatch$name="^[A-Z]+$") "";
+```
+
+最后，`%rename`和`%ignore`的变体可用来包装C++重载函数和方法，或者使用默认参数的C++方法。C++章节的[歧义解析与重命名](#swig-ambiguity-resolution-and-renaming)部分对此有描述。
+
+### 5.4.7.4 忽略一切后再包装几个指定的符号
+
+使用上面描述的技术可以用来忽略头文件中的所有声明，然后再选择部分方法和类进行包装。例如，考虑头文件`myheader.h`，其中包含了很多类，只像包装一个叫`Star`的类，可以做么做：
+
+```c
+%ignore ""; // Ignore everything
+// Unignore chosen class 'Star'
+%rename("%s") Star;
+// As the ignore everything will include the constructor, destructor, methods etc
+// in the class, these have to be explicitly unignored too:
+%rename("%s") Star::Star;
+%rename("%s") Star::~Star;
+%rename("%s") Star::shine; // named method
+%include "myheader.h"
+```
+
+另外一个方法可能更合适这种情况，它不需要命名所选择类所有方法，一开始只忽略所有类。这种方法不会显式忽略任何类的方法，所以当选择的类不被忽略时，它的所有方法都会被包装：
+
+```c
+%rename($ignore, %$isclass) "";  // Only ignore all classes
+%rename("%s") Star; 			// Unignore 'Star'
+%include "myheader.h"
+```
 
 
+
+## 5.4.8 默认/可选参数
+
+SWIG支持C/C++代码中的默认参数。如：
+
+```c 
+int plot(double x, double y, int color=WHITE);
+```
+
+这种情况下，SWIG会生成包装代码，而默认参数在目标语言中时可选的。如，在Tcl中可以这么调用：
+
+```tcl
+% plot -3.4 7.5 # Use default value
+% plot -3.4 7.5 10 # set color to 10 instead
+```
+
+尽管ANSI C标准不允许默认参数，但在SWIG接口文件中指定C/C++的默认参数都是可以的。
+
+> 注意：对于SWIG使用默认参数生成包装代码，这里有一个小的语义问题。当在C代码中使用默认参数时，默认值被释放到包装器中，函数用一组完整的参数调用。当包装C++生成带默认参数的重载函数时有一些不同。请参考C++章节的[默认参数](#swig-default-arguments)了解更多信息。
+
+
+
+##5.4.9 指向函数的指针与回调
+
+偶尔的情况下，C库中的函数参数需要接收函数指针，可能用于当做回调函数使用。SWIG全面支持函数指针，回调函数定义在C而不是目标语言中。如，考虑像这样一个函数：
+
+```c
+int binary_op(int a, int b, int (*op)(int,int));
+```
+
+当你第一次包装像这样的代码到扩展库时，你会发现这个板书不能使用。比如，在Python中：
+
+```python
+>>> def add(x,y):
+... return x+y
+...
+>>> binary_op(3,4,add)
+Traceback (most recent call last):
+  File "<stdin>", line 1, in ?
+TypeError: Type error. Expected _p_f_int_int__int
+>>>
+```
+
+这个错误的原因是，SWIG不知道如何将脚本语言的函数映射到C中的回调函数。但是，已经存在的C函数是可以作为参数使用的（已作为常量指定了）。使用`%constant`指令可以达此目的：
+
+```c
+/* Function with a callback */
+int binary_op(int a, int b, int (*op)(int,int));
+/* Some callback functions */
+%constant int add(int,int);
+%constant int sub(int,int);
+%constant int mul(int,int);
+```
+
+ 这种情况下，`add`，`sub`和`mul`都在目标脚本语言中都变成了函数指针常量。可以允许你像下面这样使用：
+
+```python
+>>> binary_op(3,4,add)
+7
+>>> binary_op(3,4,mul)
+12
+>>>
+```
+
+不幸的是，将回调函数声明为常量后就不能像常规函数使用它们了。如：
+
+```python
+>>> add(3,4)
+Traceback (most recent call last):
+File "<stdin>", line 1, in ?
+TypeError: object is not callable: '_ff020efc_p_f_int_int__int'
+>>>
+```
+
+如果你想让一个函数同时作为常量和函数使用，可以使用`%callback`和`%nocallback`指令:
+
+```c
+/* Function with a callback */
+int binary_op(int a, int b, int (*op)(int,int));
+/* Some callback functions */
+%callback("%s_cb");
+int add(int,int);
+int sub(int,int);
+int mul(int,int);
+%nocallback;
+```
+
+`callback`指令的参数也是一个printf样式的格式化字符串，可指定对调常量的命名规则(%s用函数名替换)。回调模式在用`%nocallback`指令禁止前会一直有效。当这样做后，接口像下面这样工作：
+
+```python
+>>> binary_op(3,4,add_cb)
+7
+>>> binary_op(3,4,mul_cb)
+12
+>>> add(3,4)
+7
+>>> mul(3,4)
+12
+```
+
+>注意：当函数作为回调使用时，使用了特定的`add_cb`代替。当做常规函数调用时，使用其原始函数名`add`。
+
+SWIG提供了大量标准C printf格式扩展可用在这种情况下。例如，下面的变体将回调变为全部大写的形式:
+
+```c
+/* Some callback functions */
+%callback("%(uppercase)s");
+int add(int,int);
+int sub(int,int);
+int mul(int,int);
+%nocallback;
+```
+
+`%(lowercase)s`格式化字符串将所有字符转换成小写的。`%(title)s`将首字母大写，剩下的小写。
+
+现在，介绍关于函数指针支持的最后一点。尽管SWIG一般不允许在目标语言中写回调，但可以使用typemap和其他SWIG高级特性达此目的。查看[Typemaps](#swig-typemaps)章节获取关于typemap的信息，查看目标语言各自章节了解关于回调和`director`的更多信息。
