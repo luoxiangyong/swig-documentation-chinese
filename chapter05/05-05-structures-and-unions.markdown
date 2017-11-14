@@ -433,3 +433,97 @@ void Person_name_set(Person *p, char *val) {
 
 ## 5.5.7 内嵌的结构体
 
+偶尔情况下，C程序中可能会包含向下面这样的结构体：
+
+```c
+typedef struct Object {
+  int objtype;
+  union {
+    int ivalue;
+    double dvalue;
+    char *strvalue;
+    void *ptrvalue;
+  } intRep;
+} Object;
+```
+
+当SWIG遇到这种情况时，它执行结构拆分操作，将声明转换为等价的如下操作：
+
+```c
+typedef union {
+  int ivalue;
+  double dvalue;
+  char *strvalue;
+  void *ptrvalue;
+} Object_intRep;
+
+typedef struct Object {
+  int objType;
+  Object_intRep intRep;
+} Object;
+```
+
+SWIG会在接口文件中创建一个`Object_intRep`结构。同时，两个结构体的访问函数也会被创建。这种情况下，下面这些函数将会创建：
+
+```c
+Object_intRep *Object_intRep_get(Object *o) {
+	return (Object_intRep *) &o->intRep;
+}
+int Object_intRep_ivalue_get(Object_intRep *o) {
+	return o->ivalue;
+}
+int Object_intRep_ivalue_set(Object_intRep *o, int value) {
+	return (o->ivalue = value);
+}
+double Object_intRep_dvalue_get(Object_intRep *o) {
+	return o->dvalue;
+}
+... etc ...
+```
+
+虽然这个过程有点毛毛糙糙的，但它在目标脚本语言中工作的与您在所期望的一样——特别是当时候代理类以后。例如，在Perl中：
+
+```perl
+# Perl5 script for accessing nested member
+$o = CreateObject(); # Create an object somehow
+$o->{intRep}->{ivalue} = 7 # Change value of o.intRep.ivalue
+```
+
+如果你有很多的嵌入结果体声明，运行SWIG后，建议最好再检查一遍。尽管很有可能它们会工作，但在某些情况下，您可能需要修改接口文件。
+
+最后，请注意在C++模式下嵌套处理的方式不同，请查看[内嵌类](#swig-nested-classes)。
+
+## 5.5.8 关于结构体包装的其他注意事项
+
+SWIG不关心在.i后缀的接口文件中声明的结构体精确匹配C底层使用的代码（嵌套结构的情况除外）。因为这个原因，省略问题成员或者干脆省略结构定义是没有问题的。如果你愿意传递指针，可以不给出结构体的定义。
+
+从SWIG 1.3开始，SWIG代码生成器做了很多改进。特别是，尽管结构体的访问被描述成高层次的访问函数，如:
+
+```c++
+double Vector_x_get(Vector *v) {
+	return v->x;
+}
+```
+
+但生成的包装代码本身却是内联的。因此，生成的包装代码中其实没有`Vector_x_get()`这个函数。例如，当创建Tcl模块是，下面的函数被生成：
+
+```c
+static int
+_wrap_Vector_x_get(ClientData clientData, Tcl_Interp *interp,int objc, Tcl_Obj *CONST objv[]) {
+  struct Vector *arg1 ;
+  double result ;
+  
+  if (SWIG_GetArgs(interp, objc, objv,"p:Vector_x_get self ",&arg0,SWIGTYPE_p_Vector) 
+  							== TCL_ERROR)
+  	return TCL_ERROR;
+  	
+  result = (double ) (arg1->x);
+  Tcl_SetObjResult(interp,Tcl_NewDoubleObj((double) result));
+  
+  return TCL_OK;
+}
+```
+
+这个规则唯一例外是使用`%extend`指令定义的方法。这种情况下，添加的代码包含在一个单独的函数中。
+
+最后，需要注意到的是，多数语言模块可以选择创建更多的高级接口，这很重要。尽管你可能从来不使用这里介绍的低级接口，但SWIG的语言模块在其他地方以另外的方式总在使用。
