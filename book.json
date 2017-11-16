@@ -36,7 +36,9 @@
 		"lunr",
 		"highlight",
 		"github",
-		"emphasize"
+		"emphasize",
+		"yahei",
+      		"katex"
 	],
 	"pluginsConfig": {
 		"fontsettings": {
