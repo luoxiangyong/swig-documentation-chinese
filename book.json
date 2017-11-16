@@ -17,14 +17,14 @@
 	"output": null,
 	    "pdf": {
 		"toc": true,
-		"fontSize": 12,
+		"fontSize": 18,
 		"footerTemplate": null,
 		"headerTemplate": null,
 		"margin": {
-		    "bottom": 36,
-		    "left": 62,
-		    "right": 62,
-		    "top": 36
+		    "bottom": 50,
+		    "left": 30,
+		    "right": 30,
+		    "top": 30
 		},
 		"pageNumbers": true,
 		"paperSize": "a4"
