@@ -41,7 +41,7 @@
     * [6.3 支持的C++特性](chapter06/06-03-supported-cpp-features.markdown)
     * [6.4 命令行选项与编译](chapter06/06-04-command-line-options-and-compilation.markdown)
     * [6.5 代理类](chapter06/06-05-proxy-classes.markdown)
-    * [6.6 简单的C++包装](chapter06/06-06-simple-cpp- wrapping.markdown)
+    * [6.6 简单的C++包装](chapter06/06-06-simple-cpp-wrapping.markdown)
     * [6.7 默认参数](chapter06/06-07-default-arguments.markdown)
     * [6.8 保护](chapter06/06-08-protection.markdown)
     * [6.9 枚举与常量](chapter06/06-09-enums-and-constants.markdown)
