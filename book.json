@@ -17,7 +17,7 @@
 	"output": null,
 	    "pdf": {
 		"toc": true,
-		"fontSize": 18,
+		"fontSize": 12,
 		"footerTemplate": null,
 		"headerTemplate": null,
 		"margin": {
