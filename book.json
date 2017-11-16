@@ -41,8 +41,8 @@
 	"pluginsConfig": {
 		"fontsettings": {
 			"theme": "sepia",
-			"family": "serif",
-			"size":  1
+			"family": "msyh",
+			"size":  2
 		},
 		"github": {
 			"url": "https://github.com/luoxiangyong"
