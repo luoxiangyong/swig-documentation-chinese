@@ -43,7 +43,7 @@
 	"pluginsConfig": {
 		"fontsettings": {
 			"theme": "sepia",
-			"family": "msyh",
+			"family": "sans",
 			"size":  2
 		},
 		"github": {
