@@ -30,7 +30,7 @@
 * [5 SWIG基础](chapter05/05-00-introduction.markdown)
     * [5.1 运行SWIG](chapter05/05-01-running-swig.markdown)
     * [5.2 包装简单的C声明](chapter05/05-02-wrapping-simple-c-declarations.markdown)
-    * [5.3 指针和复杂对象](chapter05/05-03-Pointers and complex objects.markdown)
+    * [5.3 指针和复杂对象](chapter05/05-03-pointers-and-complex-objects.markdown)
     * [5.4 其他实用性建议](chapter05/05-04-other-practicalities.markdown)
     * [5.5 结构体与联合体](chapter05/05-05-structures-and-unions.markdown)
     * [5.6 代码插入](chapter05/05-06-code-insertion.markdown)
