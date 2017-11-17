@@ -147,3 +147,177 @@ public:
 
 ## 6.6.4 拷贝构造函数
 
+如果类定义了不止一个构造函数，其在目标语言中的行为依赖于目标语言的能力。如果目标语言支持重载，就可以通过正常的构造函数访问拷贝构造器。例如，如果有一下代码：
+
+```c++
+class List {
+public:
+  List();
+List(const List &); // Copy constructor
+...
+};
+```
+
+则，拷贝构造函数可以这么使用：
+
+```python
+x = List() # Create a list
+y = List(x) # Copy list x
+```
+
+如果目标语言不支持重载，则拷贝构造函数通过像下面这样特殊的方式访问：
+
+```c++
+List *copy_List(List *f) {
+	return new List(*f);
+}
+```
+
+> **注意：**对于类X，只有构造函数接受类型X或X*，SWIG才会将构造函数用作拷贝构造函数。如果定义了不止一个拷贝构造函数，只有第一个定义的能被使用——其他的定义会导致命名冲突。SWIG将类似`X(const X &)`、`X(X &)`及`X(X *)`这样的构造函数都认识是拷贝构造函数。
+
+> **注意：**除非你显式的在类中声明了，SWIG不会生成拷贝构造函数的包装代码。这与对构造函数和析构函数的处理方式不同。但是，如果使用`copyctor`特征标志，也能生成拷贝构造函数的包装。比如：
+>
+> ```c++
+> %copyctor List;
+> class List {
+> public:
+> 	List();
+> };
+> ```
+>
+> 将会为`List`生成拷贝构造函数的包装。
+
+> **兼容性注释：**对拷贝构造函数的特殊支持只到SWIG-1.3.12才被加入。先前的版本中，拷贝构造函数能够生成，但它们需要被重命名。例如：
+>
+> ```c++
+> class Foo {
+> public:
+>   Foo();
+>   %name(CopyFoo) Foo(const Foo &);
+> 	...
+> };
+> ```
+>
+> 为了向后兼容，如果构造函数已经被手动重新命名了，SWIG就不会执行对任何拷贝构造函数的处理。比如在上面的例子中，构造器就被设置为了`new_CopyFoo()`。这个行为和旧版本的一致。
+
+## 6.6.5 成员函数
+
+所有的成员函数都是大致翻译成这样的访问函数：
+
+```c++
+int List_search(List *obj, char *value) {
+	return obj->search(value);
+}
+```
+
+即使成员函数被声明为虚拟，这个转换也是一样的。值得注意的，SWIG实际上并没有真的在生成的代码中创建C风格的访问函数。却而代之的是，对类似`obj->search(value)`这样成员的访问，被直接内联到生成的包装函数之中。但是，底层过程包装函数的名字和调用约定和上面访问函数原型的描述是一致的。
+
+## 6.6.6 静态成员
+
+静态成员函数都被直接调用，不做任何特殊的处理。例如，静态成员函数`print(List *l)`，在生成的包装代码中可直接用`List::print(List *l)`调用。
+
+## 6.6.7 数据成员
+
+对数据成员的处理和对C结构体的处理时一样的。直接创建一对访问函数。比如：
+
+```c++
+int List_length_get(List *obj) {
+	return obj->length;
+}
+int List_length_set(List *obj, int value) {
+	obj->length = value;
+return value;
+}
+```
+
+可使用`%immutable`和`%mutable`指令创建只读成员。例如，我们可能不像用户修改列表的长度，所以可以像下面这样做，让变量可用，但是是只读的：
+
+```c++
+class List {
+public:
+  ...
+  %immutable;
+  int length;
+  %mutable;
+  ...
+};
+```
+
+还可以这样指定：
+
+```c++
+%immutable List::length;
+...
+class List {
+  ...
+  int length; // Immutable by above directive
+  ...
+};
+```
+
+类似地，所有使用`const`修饰的数据属性也都被包装成只读的成员。
+
+默认情况下，SWIG使用常量引用typemap对原生类型的成员进行处理。对于不是原生的数据类型的成员，包装它们的方式稍微有些不同，比如类。比如，你有另外一个像这样的类：
+
+```c++
+class Foo {
+public:
+  List items;
+  ...
+```
+
+则底层对`items`的访问函数实际使用指针：
+
+```c++
+List *Foo_items_get(Foo *self) {
+	return &self->items;
+}
+void Foo_items_set(Foo *self, List *value) {
+  self->items = *value;
+}
+```
+
+更多信息可从[SWIG基础](#swig-basics)这一章的[结构体的数据成员]()(#swig-structure-data-members)节了解到。
+
+类的访问函数的包装代码的生成使用指针typemap。这对某些类型可能有些不自然。例如，用户可能期望STL的 `std:string`作为类的成员可从目标语言中作为字符串访问，而不是指向这个类的指针。常量引用typemap提供了对这种类型的列集(marshalling)，它高数SWIG使用常量引用typemap而不是指针typemap。这样更自然，可更有效的更改生成访问函数的方式：
+
+```c++
+const List &Foo_items_get(Foo *self) {
+	return self->items;
+}
+void Foo_items_set(Foo *self, const List &value) {
+	self->items = value;
+}
+```
+
+`%naturalvar`指令是一个宏定义，它等同于`%feature("naturalvar")`。可以像线面这样使用：
+
+```c++
+// All List variables will use const List& typemaps
+%naturalvar List;
+// Only Foo::myList will use const List& typemaps
+%naturalvar Foo::myList;
+struct Foo {
+	List myList;
+};
+// All non-primitive types will use const reference typemaps
+%naturalvar;
+```
+
+细心的读者可能注意到`%naturalvar`指令和其他特征标志指令工作方式一样，但灵活性更大。第一个示例中使用`%naturalvar`关联到`List`类型的`myList`变量上。第二个示例使用`%naturalvar`指令直接关联到变量名上。因此`naturalvar`特征可在变量名和类型上。需要注意地是，作用到变量名上的`naturalvar`特征会覆盖作用到类型上的`naturalvar`特征。
+
+`naturalvar`的行为可以通过`-naturalvar`命令行选项或者通过`%module(naturalvar=1)`进行去全局调整。但是，使用`%feature("naturalvar")`可以覆盖全局设置。
+
+> **兼容性注释：**`%naturalvar`从SWIG-1.3.28开始引入，早期版本需要手动应用常量引用typemap，如`%apply const std::string & { std::string * }`，但这个例子同样可以应用于带有`std::string*`参数的方法上。
+
+> **兼容性注释：**对只读访问的控制以前是通过`%readonly`和`%readwrite`指令。尽管这些指令现在还可以工作，但会有警告提示。简单将它们替换成`%immutable;`和`%mutable;`就可以了。**不要忘记了额外的分号。**
+
+> **兼容性注释：**在SWIG-1.3.12之前，所有未知类型都被包装成使用指针的访问函数。例如，有下面的结构：
+>
+> ```c++
+> struct Foo {
+> 	size_t len;
+> };
+> ```
+>
+> 且不知道`size_t`的类型，则访问函数使用`size_t*`工作。从SWIG-1.3.12开始，这个行为被修改了。特殊情况下，只有SWIG知道数据类型是结构体或类的时候才会使用指针的方案。因此，上面的代码会包装成使用`size_t`类型的访问函数。这个改变很小，但是它是对一些问题的处理变得更平滑，比如结构体包装和SWIG的自定义特性。
