@@ -10,7 +10,7 @@ typora-root-url: .
 
 如果你有意愿加入，热烈欢迎。
 
-**Gitbook:** 本书在gitbook上发布，从这里访问:<https://www.gitbook.com/book/luoxiangyong/swig-documentation-chinese/details>。
+**Gitbook:** 本书在gitbook上发布，从这里访问:<https://www.gitbook.com/read/book/luoxiangyong/swig-documentation-chinese>。
 
 **Github:** 书籍源码使用github管理，从这里访问: <https://github.com/luoxiangyong/swig-documentation-chinese>
 
