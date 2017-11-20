@@ -51,7 +51,7 @@
     * [6.13 继承](chapter06/06-13-inheritance.markdown)
     * [6.14 简论多重继承、指针与类型检查](chapter06/06-14-a-brie-discussion-of-multiple-inheritance-pointers-and-type-checking.markdown)
     * [6.15 包装重载函数与方法](chapter06/06-15-wrapping-overloaded-functions-and-methods.markdown)
-    * [6.16 重载操作符的包装](chapter06/06-16-wrapping-overloaded-operators.markdown)
+    * [6.16 包装重载操作符](chapter06/06-16-wrapping-overloaded-operators.markdown)
     * [6.17 类扩展](chapter06/06-17-class-extension.markdown)
     * [6.18 模板](chapter06/06-18-templates.markdown)
     * [6.19 命名空间](chapter06/06-19-namespaces.markdown)
