@@ -391,10 +391,126 @@ SWIG可以非常完美地接受这样的声明，但是模板构造函数将被�
 ```c++
 // Create default and conversion constructors
 %extend pair<double,double> {
-  %template(pair) pair<double,dobule>; // Default constructor
+  %template(pair) pair<double,double>; // Default constructor
   %template(pair) pair<int,int>; // Conversion constructor
 };
 ```
 
+在这种情况下，默认的和转换构造器的名字一样。因此，SWIG会重载它们，且会定义一个唯一可见的构造函数，这将根据参数类型分发并调用合适的函数。
 
+如果这些还不够的话，你想让人更头疼，`%rename`，`%extend`和`typemap`指令可以之间在模板中定义。例如：
 
+```c++
+// File : list.h
+template<class T> class List {
+	...
+public:
+  %rename(__getitem__) get(int);
+  List(int max);
+  ~List();
+  ...
+  T get(int index);
+  %extend {
+    char *__str__() {
+      /* Make a string representation */
+      ...
+    }
+  }
+};
+```
+
+这个例子中，使用了额外的SWIG指令，所有使用该模板的类都将使用这些定义。
+
+还可以从模板类中分离出这些声明。例如:
+
+```c++
+%rename(__getitem__) List::get;
+%extend List {
+  char *__str__() {
+    /* Make a string representation */
+    ...
+  }
+  /* Make a copy */
+  T *__copy__() {
+  	return new List<T>(*$self);
+  }
+};
+...
+template<class T> class List {
+...
+public:
+  List() { }
+  T get(int index);
+  ...
+};
+```
+
+当`%extend`从类定义中分离出来后，像在类定义中一样使用模板参数是合法的。这些都将在模板展开时被替换。除此之外，`%extend`指令还能用于添加额外的方法到特定的模板实例化之上。例如：
+
+```c++
+%template(intList) List<int>;
+%extend List<int> {
+  void blah() {
+  	printf("Hey, I'm an List<int>!\n");
+  }
+};
+```
+
+SWIG甚至支持重载的模板函数。一般`%template`指令用于包装模板函数。比如：
+
+```c++
+template<class T> void foo(T x) { };
+
+template<class T> void foo(T x, T y) { };
+
+%template(foo) foo<int>;
+```
+
+这将生成两个重载的包装函数，第一个带一个整形参数，第二个带两个整形参数。
+
+不用说，SWIG对模板的支持提供了大量的打破常规的方式方法。也就是说，一个重要的终极要点是：**SWIG不对模板执行大范围的错误检查！**特别是，SWIG不执行类型检查，也不检查模板声明是否真的有意义。因为C++编译器会检查，实践中SWIG就不用再重复实现这些功能了。
+
+因为SWIG的模板支持不执行类型检查，可以在模板声明后，尽早使用`%template`指令。你还可以（尽管这种情况很少）在模板参数声明之前使用`%template`。比如：
+
+```c++
+template <class T> class OuterTemplateClass {};
+// The nested class OuterClass::InnerClass inherits from the template class
+// OuterTemplateClass<OuterClass::InnerStruct> and thus the template needs
+// to be expanded with %template before the OuterClass declaration.
+%template(OuterTemplateClass_OuterClass__InnerStruct)
+OuterTemplateClass<OuterClass::InnerStruct>
+// Don't forget to use %feature("flatnested") for OuterClass::InnerStruct and
+// OuterClass::InnerClass if the target language doesn't support nested classes.
+class OuterClass {
+public:
+	// Forward declarations:
+  struct InnerStruct;
+  class InnerClass;
+};
+struct OuterClass::InnerStruct {};
+// Expanding the template at this point with %template is too late as the
+// OuterClass::InnerClass declaration is processed inside OuterClass.
+class OuterClass::InnerClass : public OuterTemplateClass<InnerStruct> {};
+```
+
+> **兼容性注释：**模板支持的第一个实现版本非常依赖预处理器中的宏扩展。SWIG-1.3.12中，模板与解释器和类型系统已经做了紧密集成，预处理器就不再需要了。模板扩展中依赖于预处理特征的代码不再工作。但是SWIG依然允许`#`操作符用于从模板参数中生成字符串。
+
+> **兼容性注释：**在早期版本的SWIG中，`%template`指令会引入新的类名。这个名字可以在其他指令中使用。例如：
+>
+> ```c++
+> %template(vectori) vector<int>;
+> %extend vectori {
+> 	void somemethod() { }
+> };
+> ```
+>
+> 这种行为不再被支持。你应该使用原始的模板名字作为类名。比如：
+>
+> ```c++
+> %template(vectori) vector<int>;
+> %extend vector<int> {
+> 	void somemethod() { }
+> };
+> ```
+>
+> Typemap和其他的自定义特征也做相似的改变。
