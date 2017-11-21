@@ -323,3 +323,78 @@ public:
 ```
 
 并且，因为两个包装方法的名字`bar`相同，它们就被重载了，当被调用时会根据参数类型不同通过函数分发机制调用到正确的函数。
+
+在当做成员使用时，`%template`指令可以放在另外的模板类中。这是一个有点不正常的例子：
+
+```c++
+// A template
+template<class T> class Foo {
+public:
+  // A member template
+  template<class S> T bar(S x, S y) { ... };
+  ...
+};
+// Expand a few member templates
+%extend Foo {
+%template(bari) bar<int>;
+%template(bard) bar<double>;
+}
+// Create some wrappers for the template
+%template(Fooi) Foo<int>;
+%template(Food) Foo<double>;
+```
+
+你会奇迹般的发现每个被扩展后的`Foo`类都有成员函数`bari`和`bard`。
+
+成员模板的一般应用是为拷贝和转换定义构造函数。例如：
+
+```c++
+template<class T1, class T2> struct pair {
+  T1 first;
+  T2 second;
+  pair() : first(T1()), second(T2()) { }
+  pair(const T1 &x, const T2 &y) : first(x), second(y) { }
+  template<class U1, class U2> pair(const pair<U1,U2> &x)
+  : first(x.first),second(x.second) { }
+};
+```
+
+SWIG可以非常完美地接受这样的声明，但是模板构造函数将被忽略，除非你显式地扩展了它。为达此目的，你可以在模板类中扩展一系列的构造函数。例如：
+
+```c++
+%extend pair {
+	%template(pair) pair<T1,T2>; // Generate default copy constructor
+};
+```
+
+当向这样使用`%extend`指令时，请注意你是如何能够在原始的模板定义中使用模板参数的。
+
+另外一种方式是，你可以选择性的实例化扩展构造函数模板。比如：
+
+```c++
+// Instantiate a few versions
+%template(pairii) pair<int,int>;
+%template(pairdd) pair<double,double>;
+// Create a default constructor only
+%extend pair<int,int> {
+	%template(paird) pair<int,int>; // Default constructor
+};
+// Create default and conversion constructors
+%extend pair<double,double> {
+  %template(paird) pair<double,dobule>; // Default constructor
+  %template(pairc) pair<int,int>; // Conversion constructor
+};
+```
+
+并且如果目标语言支持重载，你还可以这样写：
+
+```c++
+// Create default and conversion constructors
+%extend pair<double,double> {
+  %template(pair) pair<double,dobule>; // Default constructor
+  %template(pair) pair<int,int>; // Conversion constructor
+};
+```
+
+
+
