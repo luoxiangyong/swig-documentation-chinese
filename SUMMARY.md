@@ -61,7 +61,7 @@
     * [6.23 指向成员的指针](chapter06/06-23-pointers-to-members.markdown)
     * [6.24 智能指针与operator->()](chapter06/06-24-smart-pointers-and-operator.markdown)
     * [6.25 C++引用计数对象——ref/unref特征](chapter06/06-25-cpp-reference-counted-objects-ref-unref-feature.markdown)
-    * [6.26 使用声明与继承](chapter06/06-26-using-declarations-and-inheritance.markdown)
+    * [6.26 using声明与继承](chapter06/06-26-using-declarations-and-inheritance.markdown)
     * [6.27 内嵌类](chapter06/06-27-nested-classes.markdown)
     * [6.28 关于const正确性的简要解释](chapter06/06-28-a-brief-rant-about-const-correctness.markdown)
     * [6.29 去哪儿获取更多信息](chapter06/06-29-where-to-go-for-more-information.markdown)
